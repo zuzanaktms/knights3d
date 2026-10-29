@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="cs">
+  <head>
+    <title>3D game</title>
+    <meta charset=UTF-8>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" type="image/png" href="./sources/images/FAVICON.png">
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "./three/three.module.js",
+          "three/webgpu": "./three/three.webgpu.js",
+          "three/addons/loaders/GLTFLoader.js": "./sources/addons/GLTFLoader.js",
+          "three/addons/controls/PointerLockControls.js": "./sources/addons/PointerLock.js"
+        }
+      }
+    </script>
+  </head>
+  <body oncontextmenu="return false">
+    <div style="display: flex;">
+      <div id="game-container">
+        <div id="hp-label">HP: <span id="hp-text">100</span>/100</div>
+        <div id="hp-bar-bg">
+        <div id="hp-bar-fill"></div>
+      </div>
+      </div>
+    </div> 
+    <script type="module" src="code.js">
+    </script>
+  </body>
+</html>

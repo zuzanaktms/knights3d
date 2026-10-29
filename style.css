@@ -1,0 +1,57 @@
+html {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+html::-webkit-scrollbar {
+  display: none;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background-color: #111116;
+}
+
+#game-container {
+  width: 100vw;
+  height: 100vh;
+  display: block;
+}
+
+
+#hp-container {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    z-index: 100; 
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: white;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+#hp-label {
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 5px;
+    color: white;
+}
+
+#hp-bar-bg {
+    width: 200px;
+    height: 20px;
+    background-color: rgba(50, 50, 50, 0.7);
+    border: 2px solid #fff;
+    border-radius: 5px;
+    overflow: hidden;
+    box-shadow: 0 0 10px rgba(0,0,0,0.5);
+}
+
+#hp-bar-fill {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90px, #ff4d4d, #cc0000);
+    background-color: #ff3333;
+    transition: width 0.3s ease-in-out; 
+}
