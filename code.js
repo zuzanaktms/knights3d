@@ -37,7 +37,7 @@ directionalLight.shadow.camera.far = 25;
 scene.add(directionalLight);
 
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-camera.position.set(0, 2, 0);
+camera.position.set(-10, 2, -10);
 
 const floor_material = new THREE.MeshStandardMaterial({ 
     color: 0x808080, 
@@ -141,7 +141,9 @@ document.addEventListener('click', () => {
 
 if (in_game == 0)
 {
-  made_walls();
+  map_g_rooms(Math.floor(Math.random() * 76) , Math.floor(Math.random() * 76))
+  map_g_rooms(Math.floor(Math.random() * 76) , Math.floor(Math.random() * 76))
+  map_g_rooms(Math.floor(Math.random() * 76) , Math.floor(Math.random() * 76))
 }
 
 document.addEventListener('click', () => { 
@@ -241,10 +243,12 @@ window.addEventListener('keyup', (event) => {
 function animate() 
 {
   requestAnimationFrame(animate);
+
   if (last_HP != HP)
   {
     update_HP(HP);
   }
+
   if (in_game == 1)
   {
     let stojim_na_zdi = 0;
@@ -270,55 +274,17 @@ function animate()
       }
     }
 
-    for (let cube of Object.values(walls))
-    {
-      if (
-        camera.position.x > cube.mesh.position.x - 0.7 &&
-        camera.position.x < cube.mesh.position.x + 0.7 &&
-        camera.position.z > cube.mesh.position.z - 0.7 &&
-        camera.position.z < cube.mesh.position.z + 0.7 &&
-        jump == 0 &&
-        stojim_na_zdi == 0 &&
-        now_gravitation != 1
-      )
-      {
-        if (W_key == 1)
-        {
-          camera.position.addScaledVector(smer_pohybu, -speed);
-        }
-
-        if (S_key == 1)
-        {
-          camera.position.addScaledVector(smer_pohybu, speed);
-        }
-
-        if (A_key == 1)
-        {
-          camera.position.addScaledVector(jdu_v_bok, speed);
-        }
-
-        if (D_key == 1)
-        {
-          camera.position.addScaledVector(jdu_v_bok, -speed);
-        }
-
-        if (cube.y == 1)
-        {
-          camera.position.x = last_jump_x;
-          camera.position.y = last_jump_y;
-        }
-      }
-    }
-
     if (stojim_na_zdi == 1)
     {
-      floor_gravitation = 1;
+      floor_gravitation = 2;
     }
     else
     {
       floor_gravitation = 0;
     }
   }
+
+  // SKÁKÁNÍ
   if (jump == 1)
   {
     now_gravitation += 0.13;
@@ -374,33 +340,33 @@ function animate()
     if (now_gravitation > floor_gravitation)
     {
       now_gravitation -= 0.10;
+
       if (now_gravitation <= floor_gravitation)
       {
         jump = 0;
       }
     }
   }
+
+  // POHYB HRÁČE
   if (in_game == 1) 
   {
     if (crouch == 1)
     {
       speed = 0.025;
     }
-    else if (crouch == 0) 
+    else
     {
       speed = 0.05;
     }
+
     if (Shift_key === 1 && W_key === 1 && crouch == 0) 
     {
       speed = 0.15;
     }
-    else if (crouch == 0)
-    {
-      speed = 0.05; 
-    }
 
     camera.getWorldDirection(smer_pohybu);
-    
+
     smer_pohybu.y = 0;
     smer_pohybu.normalize();
 
@@ -409,47 +375,16 @@ function animate()
 
     let se_pohybuje = false;
 
+    // W
     if (W_key === 1)
     {
-      camera.position.addScaledVector(smer_pohybu, speed);
+      move_player(
+        smer_pohybu.x * speed,
+        smer_pohybu.z * speed
+      );
+
       se_pohybuje = true;
-      if (Shift_key == 0)
-      {
-        footstep1.play();
-      }
-      else
-      {
-        footsteps_running.play();
-      }
-    }
-    if (S_key === 1) 
-    {
-      camera.position.addScaledVector(smer_pohybu, -speed);
-      se_pohybuje = true;
-      if (Shift_key == 0)
-      {
-        footstep1.play();
-      }
-      else
-      {
-        footsteps_running.play();
-      }
-    }
-    if (D_key === 1) 
-    {
-      camera.position.addScaledVector(jdu_v_bok, speed);
-      if (Shift_key == 0)
-      {
-        footstep1.play();
-      }
-      else
-      {
-        footsteps_running.play();
-      }
-    }
-    if (A_key === 1) 
-    {
-      camera.position.addScaledVector(jdu_v_bok, -speed);
+
       if (Shift_key == 0)
       {
         footstep1.play();
@@ -460,6 +395,67 @@ function animate()
       }
     }
 
+    // S
+    if (S_key === 1) 
+    {
+      move_player(
+        -smer_pohybu.x * speed,
+        -smer_pohybu.z * speed
+      );
+
+      se_pohybuje = true;
+
+      if (Shift_key == 0)
+      {
+        footstep1.play();
+      }
+      else if (crouch == 0)
+      {
+        footsteps_running.play();
+      }
+    }
+
+    // D
+    if (D_key === 1) 
+    {
+      move_player(
+        jdu_v_bok.x * speed,
+        jdu_v_bok.z * speed
+      );
+
+      se_pohybuje = true;
+
+      if (Shift_key == 0)
+      {
+        footstep1.play();
+      }
+      else
+      {
+        footsteps_running.play();
+      }
+    }
+
+    // A
+    if (A_key === 1) 
+    {
+      move_player(
+        -jdu_v_bok.x * speed,
+        -jdu_v_bok.z * speed
+      );
+
+      se_pohybuje = true;
+
+      if (Shift_key == 0)
+      {
+        footstep1.play();
+      }
+      else
+      {
+        footsteps_running.play();
+      }
+    }
+
+    // ANIMACE POHYBU RUKOU
     if (se_pohybuje === true)
     {
       if (arm_position === 0) 
@@ -481,6 +477,7 @@ function animate()
           arm_position++;
         }
       }
+
       if (arm_position >= 60)
       {
         arm_position = 1;
@@ -490,8 +487,9 @@ function animate()
     {
       arm_position = 0;
     }
-
   }
+
+  // POZICE RUKOU
   if (arm_position == 0)
   {
     if (buch == 0)
@@ -502,6 +500,7 @@ function animate()
     else if (buch == 1)
     {
       buch_arm = Math.round(Math.random());
+
       if (buch_arm == 0)
       {
         arm2_mesh.position.set(-0.4, -0.7, -0.7);
@@ -512,6 +511,7 @@ function animate()
         arm2_mesh.position.set(-0.4, -0.45, -1.15);
         arm_mesh.position.set(0.3, -0.5, -0.6);
       }
+
       buch = 2;
       zvuk_buchu.play();
     }
@@ -526,6 +526,7 @@ function animate()
     arm2_mesh.position.set(-0.4, -0.45, -0.8);
     arm_mesh.position.set(-2, -5, -2);
   }
+
   if (crouch == 0)
   {
     camera.position.y = now_gravitation + 2;
@@ -534,9 +535,11 @@ function animate()
   {
     camera.position.y = now_gravitation + 1.25;
   }
+
   if (buch >= 2 && buch <= 50)
   {
     buch++;
+
     if (buch_arm == 0)
     {
       arm2_mesh.position.set(-0.4, -0.7, -0.7);
@@ -552,28 +555,31 @@ function animate()
   {
     buch = 0;
   }
+
   if (now_gravitation > floor_gravitation && jump == 0 || jump == 20) 
   {
-      now_gravitation -= 0.20;
+    now_gravitation -= 0.20;
 
-      if (now_gravitation < floor_gravitation) 
-      {
-          now_gravitation = floor_gravitation;
-      }
+    if (now_gravitation < floor_gravitation) 
+    {
+      now_gravitation = floor_gravitation;
+    }
 
-      if (jump == 0) 
-      {
-          jump = 20;
-      }
+    if (jump == 0) 
+    {
+      jump = 20;
+    }
   }
 
   if (jump == 20 && now_gravitation <= floor_gravitation) 
   {
-      now_gravitation = floor_gravitation;
-      jump = 0;
+    now_gravitation = floor_gravitation;
+    jump = 0;
   }
+
   renderer.render(scene, camera);
 }
+
 animate();
 
 function update_HP(noveHP)
@@ -631,21 +637,167 @@ function made_walls()
   }
   for (let cube of Object.values(walls))
   {
-    world_plan[cube.z*80 + cube.x] = 1;
+    world_plan[(cube.z + 40)*80 + cube.x + 40] = 1;
+  }
+  for (let i = 0;i < 100;i++)
+  {
+    if (shortest_path(0,0,30,20))
+    {
+      console.log("1");
+    }
+    else
+    {
+      console.log("0");
+    }
   }
 }
 
-function shortest_path(start_x,start_y,target_x,target_y)
+function shortest_path(start_x,start_z,target_x,target_z)
 {
   let checked = [];
-  let stack = [];
-  
+  checked[(start_z + 40) * 80 + start_x + 40] = 1;
 
+  let stack = [[start_z + 40,start_x + 40]];
+  let finded = 0;
+
+  while (stack.length)
+  {
+    let check = stack.pop();
+
+    if (check[0] == target_z + 40 && check[1] == target_x + 40)
+    {
+      finded = 1;
+      break;
+    }
+
+    if (check[1] - 1 > -1)
+    {
+      const pos = check[0]*80 + (check[1] - 1);
+
+      if (checked[pos] != 1 && world_plan[pos] != 1)
+      {
+        stack.push([check[0],check[1] - 1]);
+      }
+    }
+    if (check[1] + 1 < 81)
+    {
+      const pos = check[0]*80 + (check[1] + 1);
+
+      if (checked[pos] != 1 && world_plan[pos] != 1)
+      {
+        stack.push([check[0],check[1] + 1]);
+      }
+    }
+    if (check[0] - 1 > -1)
+    {
+      const pos = (check[0] - 1)*80 + check[1];
+
+      if (checked[pos] != 1 && world_plan[pos] != 1)
+      {
+        stack.push([check[0] - 1,check[1]]);
+      }
+    }
+    if (check[0] + 1 < 81)
+    {
+      const pos = (check[0] + 1)*80 + check[1];
+
+      if (checked[pos] != 1 && world_plan[pos] != 1)
+      {
+        stack.push([check[0] + 1,check[1]]);
+      }
+    }
+
+    checked[check[0] * 80 + check[1]] = 1;
+  }
+
+  return finded;
 }
 
-//function map_g_rooms()
-//{  
-//}
+function map_g_rooms(x, z) 
+{  
+  let length_of_room = Math.floor(Math.random() * 11) + 10;
+  let width_of_room = Math.floor(Math.random() * 11) + 10;
+  if (x + length_of_room > 40) 
+  {
+    length_of_room = 40 - x;
+  }
+  if (z + width_of_room > 40) 
+  {
+    width_of_room = 40 - z;
+  }
+  if (length_of_room < 2 || width_of_room < 2) return;  
+  function create_wall_cube(wall_x, wall_z,wall_y) 
+  {
+    let cube = new Walls();
+    cube.x = wall_x;
+    cube.z = wall_z; 
+    cube.y = wall_y;
+    cube.geometry = new THREE.BoxGeometry(1, 1, 1);
+    cube.mesh = new THREE.Mesh(cube.geometry, cube_material);
+    cube.mesh.position.set(cube.x, cube.y, cube.z);
+    scene.add(cube.mesh);
+  }
+
+  for (let i = 0; i <= length_of_room; i++) 
+  {
+    create_wall_cube(x + i, z,0.5);
+    create_wall_cube(x + i, z + width_of_room,0.5);
+    create_wall_cube(x + i, z,1.5);
+    create_wall_cube(x + i, z + width_of_room,1.5);
+    create_wall_cube(x + i, z,2.5);
+    create_wall_cube(x + i, z + width_of_room,2.5);    
+    create_wall_cube(x + i, z,3.5);
+    create_wall_cube(x + i, z + width_of_room,3.5);
+  }
+
+  for (let j = 1; j < width_of_room; j++) 
+  {
+    create_wall_cube(x, z + j,0.5);
+    create_wall_cube(x + length_of_room, z + j,0.5);
+    create_wall_cube(x, z + j,1.5);
+    create_wall_cube(x + length_of_room, z + j,1.5);
+    create_wall_cube(x, z + j,2.5);
+    create_wall_cube(x + length_of_room, z + j,2.5);
+    create_wall_cube(x, z + j,3.5);
+    create_wall_cube(x + length_of_room, z + j,3.5);
+  }
+}
+
+function collision(x, z)
+{
+  for (let cube of Object.values(walls))
+  {
+    let wall_x = cube.mesh.position.x;
+    let wall_z = cube.mesh.position.z;
+
+    if (
+      Math.abs(x - wall_x) < 0.8 &&
+      Math.abs(z - wall_z) < 0.8
+    )
+    {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function move_player(dx, dz)
+{
+  let next_x = camera.position.x + dx;
+
+  if (!collision(next_x, camera.position.z))
+  {
+    camera.position.x = next_x;
+  }
+
+  let next_z = camera.position.z + dz;
+
+  if (!collision(camera.position.x, next_z))
+  {
+    camera.position.z = next_z;
+  }
+}
 
 window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
