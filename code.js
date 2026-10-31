@@ -82,7 +82,7 @@ const roof_block_materialy = [
 ];
 
 class Walls
-{
+{/*{{{*/
   constructor()
   {
     this.x = 0;
@@ -93,10 +93,10 @@ class Walls
     this.mesh = 0;
     walls[this.id] = this;
   }
-}
+}/*}}}*/
 
 class Doors
-{
+{/*{{{*/
   constructor()
   {
     this.axis = 0;
@@ -109,7 +109,7 @@ class Doors
     this.open = 0;
     doors[this.id] = this;
   }
-}
+}/*}}}*/
 
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
@@ -137,6 +137,7 @@ let W_key = 0;
 let S_key = 0;
 let A_key = 0;
 let D_key = 0;
+let E_key = 0;
 let Shift_key = 0;
 let jump = 0;
 let crouch = 0;
@@ -168,10 +169,12 @@ floor.receiveShadow = true;
 
 scene.add(floor);
 
+//calling important functions
 setInterval(am_I_movign,13);
+setInterval(onPointerDown,100);
 
 document.addEventListener('click', () => { 
-  if (in_game == 1 && buch == 0)
+  if (in_game == 1 && buch == 0)/*{{{*/
   {
     if (W_key == 1 )
     {
@@ -195,19 +198,19 @@ document.addEventListener('click', () => {
     D_key = 0;
     buch = 1;
   }
-});
+});/*}}}*/
 
 if (in_game == 0)
-{
+{/*{{{*/
   map_g_rooms(Math.floor(Math.random() * 41) - 20 , Math.floor(Math.random() * 41) - 20)
   map_g_rooms(Math.floor(Math.random() * 41) - 20 , Math.floor(Math.random() * 41) - 20)
   map_g_rooms(Math.floor(Math.random() * 41) - 20 , Math.floor(Math.random() * 41) - 20)
   map_g_rooms(Math.floor(Math.random() * 41) - 20 , Math.floor(Math.random() * 41) - 20)
   map_g_rooms(Math.floor(Math.random() * 41) - 20 , Math.floor(Math.random() * 41) - 20)
-}
+}/*}}}*/
 
 document.addEventListener('click', () => { 
-  mouse_control.lock();
+  mouse_control.lock();/*{{{*/
   if (!document.fullscreenElement) {
     document.documentElement.requestFullscreen()
       .catch((err) => {
@@ -216,13 +219,13 @@ document.addEventListener('click', () => {
   in_game = 1;
   return;
   }
-});
+});/*}}}*/
 
 mouse_control.addEventListener('lock', () => { in_game = 1; });
 mouse_control.addEventListener('unlock', () => { in_game = 0; });
 
 window.addEventListener('keydown', (event) => {
-  if (event.ctrlKey && (event.code === 'KeyW' || event.code === 'ArrowUp')) 
+  if (event.ctrlKey && (event.code === 'KeyW' || event.code === 'ArrowUp')) /*{{{*/
   {
     event.preventDefault();
     W_key = 1;
@@ -266,11 +269,15 @@ window.addEventListener('keydown', (event) => {
     {
       crouch = 1;
     }
+    if (event.code == 'KeyE')
+    {
+      E_key = 1;
+    }
   }
-});
+});/*}}}*/
 
 window.addEventListener('keyup', (event) => {
-  if (event.code === 'KeyW' || event.code === 'ArrowUp')
+  if (event.code === 'KeyW' || event.code === 'ArrowUp')/*{{{*/
   {
     W_key = 0;
     if (Shift_key == 1)
@@ -301,23 +308,27 @@ window.addEventListener('keyup', (event) => {
   {
     crouch = 0;
   }
-});
+  if (event.code == 'KeyE')
+  {
+    E_key = 0;
+  }
+});/*}}}*/
 
 function animate() 
-{
+{/*{{{*/
   requestAnimationFrame(animate);
-
   if (last_HP != HP)
   {
     update_HP(HP);
   }
+  
   renderer.render(scene, camera);
-}
+}/*}}}*/
 
 animate();
 
 function update_HP(noveHP)
-{
+{/*{{{*/
     const aktualniHP = Math.max(0, Math.min(max_HP, noveHP));
 
     const hpText = document.getElementById('hp-text');
@@ -340,10 +351,10 @@ function update_HP(noveHP)
     }
 
     last_HP = aktualniHP;
-}
+}/*}}}*/
 
 function made_walls()
-{
+{/*{{{*/
   for (let cell_x = -40; cell_x <= 40; cell_x += 1)
   {
     for (let cell_z = -40; cell_z <= 40; cell_z += 1)
@@ -384,10 +395,10 @@ function made_walls()
       console.log("0");
     }
   }
-}
+}/*}}}*/
 
 function shortest_path(start_x,start_z,target_x,target_z)
-{
+{/*{{{*/
   let checked = [];
   checked[(start_z + 40) * 80 + start_x + 40] = 1;
 
@@ -445,10 +456,10 @@ function shortest_path(start_x,start_z,target_x,target_z)
   }
 
   return finded;
-}
+}/*}}}*/
 
 function map_g_rooms(x, z)
-{  
+{  /*{{{*/
   let length_of_room = Math.floor(Math.random() * 11) + 10;
   let width_of_room = Math.floor(Math.random() * 11) + 10;
   let attemps = 0;
@@ -642,10 +653,10 @@ function map_g_rooms(x, z)
       create_wall_cube(x + i, z + j, 5);
     }
   }
-}
+}/*}}}*/
 
 function collision(x, z)
-{
+{/*{{{*/
   for (let cube of Object.values(walls))
   {
     let wall_x = cube.mesh.position.x;
@@ -678,10 +689,10 @@ function collision(x, z)
       }
   }
   return false;
-}
+}/*}}}*/
 
 function can_I_jump(x,z)
-{
+{/*{{{*/
   for (let cube of Object.values(walls))
   {
     let wall_x = cube.mesh.position.x;
@@ -696,10 +707,10 @@ function can_I_jump(x,z)
     }
   }
   return true;
-}
+}/*}}}*/
 
 function move_player(dx, dz)
-{
+{/*{{{*/
   let next_x = camera.position.x + dx;
 
   if (!collision(next_x, camera.position.z))
@@ -713,7 +724,7 @@ function move_player(dx, dz)
   {
     camera.position.z = next_z;
   }
-}
+}/*}}}*/
 
 window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
@@ -722,7 +733,7 @@ window.addEventListener('resize', () => {
 });
 
 function am_I_movign()
-{
+{/*{{{*/
   if (in_game == 1)
   {
     let stojim_na_zdi = 0;
@@ -1042,17 +1053,14 @@ function am_I_movign()
     jump = 0;
   }
 
-}
+}/*}}}*/
 
-window.addEventListener('pointerdown', onPointerDown);
-
-function onPointerDown(event)
-{
-    if (event.button !== 2 || in_game !== 1)
+function onPointerDown()
+{/*{{{*/
+    if (in_game == 0)
     {
-        return;
+      return;
     }
-
     pointer.set(0, 0);
     raycaster.setFromCamera(pointer, camera);
 
@@ -1068,24 +1076,25 @@ function onPointerDown(event)
 
     const hit_mesh = intersects[0].object;
     const door = door_list.find(d => d.mesh === hit_mesh);
-
-    if (!door)
+    if (door && E_key == 1)
     {
-        return;
-    }
+      door.open = door.open === 0 ? 1 : 0;
 
-    door.open = door.open === 0 ? 1 : 0;
-
-    if (door.open === 1)
-    {
-        door.pivot.rotation.y = -Math.PI / 2;
+      if (door.open === 1)
+      {
+          door.pivot.rotation.y = -Math.PI / 2;
+      }
+      else
+      {
+          door.pivot.rotation.y = 0;
+      }
     }
     else
     {
-        door.pivot.rotation.y = 0;
+      return;
     }
 }
 
 window.addEventListener('contextmenu', (event) => {
     event.preventDefault();
-});
+});/*}}}*/
