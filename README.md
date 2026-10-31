@@ -10,5 +10,5 @@ What quest it is you will discovred in game.
 game knights 3D is in progress.
 
 I am not good in English, sorry for mistakes.
-You can play it at: https://tom.zvps1.eu/games/#3D_game/
+You can play it at: https://tom.zvps1.eu/games/3D_game/
 You can play my ol scrathgames (expect knights) at: https://tom.zvps1.eu/games/
