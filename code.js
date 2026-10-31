@@ -25,6 +25,25 @@ scene.background = new THREE.Color(0x111116);
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
 scene.add(ambientLight);
 
+const texture_loader = new THREE.TextureLoader();
+const wood_house_wall_texture = texture_loader.load('./sources/images/wood_house_wall_texture(1)(1).png');
+const door_wood_house_wall_texture = texture_loader.load('./sources/images/wood_house_wall_texture.png');
+const floor_texture = texture_loader.load('./sources/images/floor_texture.png');
+const down_block_door_texture = texture_loader.load('./sources/images/wood_door_block_down.png');
+const roof_up_block = texture_loader.load('./sources/images/roof_up_texture.png');
+const roof_down_block = texture_loader.load('./sources/images/roof_down_texture.png');
+const door_blok = texture_loader.load('./sources/images/wooden_door.png');
+
+floor_texture.wrapS = THREE.RepeatWrapping;
+floor_texture.wrapT = THREE.RepeatWrapping;
+floor_texture.repeat.set(80, 80); 
+
+const door_block_material = new THREE.MeshStandardMaterial({ map: door_wood_house_wall_texture });
+const door_block_down_material = new THREE.MeshStandardMaterial({ map: down_block_door_texture });
+const roof_up_block_mat = new THREE.MeshStandardMaterial({map: roof_up_block});
+const roof_down_block_mat = new THREE.MeshStandardMaterial({map: roof_down_block});
+const door_material = new THREE.MeshStandardMaterial({map: door_blok});
+
 const directionalLight = new THREE.DirectionalLight(0xffffff, 1.2);
 directionalLight.position.set(5, 10, 7);
 
@@ -40,9 +59,27 @@ const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerH
 camera.position.set(-10, 2, -10);
 
 const floor_material = new THREE.MeshStandardMaterial({ 
-    color: 0x808080, 
-    side: THREE.DoubleSide
+  map: floor_texture,
+  transparent: true
 });
+
+const door_block_materialy = [
+  door_block_material,
+  door_block_material,
+  door_block_material,
+  door_block_down_material,
+  door_block_material,
+  door_block_material  
+];
+
+const roof_block_materialy = [
+  roof_up_block_mat,
+  roof_up_block_mat,
+  roof_up_block_mat,
+  roof_down_block_mat,
+  roof_up_block_mat,
+  roof_up_block_mat  
+];
 
 class Walls
 {
@@ -58,11 +95,29 @@ class Walls
   }
 }
 
+class Doors
+{
+  constructor()
+  {
+    this.axis = 0;
+    this.x = 0;
+    this.y = 0;
+    this.z = 0;
+    this.id = g_id++;
+    this.geometry = 0;
+    this.mesh = 0;
+    this.open = 0;
+    doors[this.id] = this;
+  }
+}
+
+const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
 const mouse_control = new PointerLockControls(camera, document.body);
 const floor_geometry = new THREE.PlaneGeometry(80.5, 80.5, 1, 1);
 const floor = new THREE.Mesh(floor_geometry, floor_material);
 const cube_geometry = new THREE.BoxGeometry(1,1,1);
-const cube_material = new THREE.MeshStandardMaterial({ color: 0x000000});
+const cube_material = new THREE.MeshStandardMaterial({ map: wood_house_wall_texture,transparent: true});
 const arm_geometry = new THREE.BoxGeometry(0.2, 0.2, 1.5);
 const arm_material = new THREE.MeshStandardMaterial({ color: 0xffdbac});
 const arm_mesh = new THREE.Mesh(arm_geometry, arm_material);
@@ -100,6 +155,7 @@ let last_jump_y = 0;
 let random_footstep = 0;
 const max_HP = 100;
 let walls = {};
+let doors = {};
 let world_plan = [];
 
 arm2_mesh.position.set(-0.4, -0.7, -0.9);
@@ -111,6 +167,8 @@ floor.rotation.x = -Math.PI / 2;
 floor.receiveShadow = true;
 
 scene.add(floor);
+
+setInterval(am_I_movign,13);
 
 document.addEventListener('click', () => { 
   if (in_game == 1 && buch == 0)
@@ -141,9 +199,11 @@ document.addEventListener('click', () => {
 
 if (in_game == 0)
 {
-  map_g_rooms(Math.floor(Math.random() * 76) , Math.floor(Math.random() * 76))
-  map_g_rooms(Math.floor(Math.random() * 76) , Math.floor(Math.random() * 76))
-  map_g_rooms(Math.floor(Math.random() * 76) , Math.floor(Math.random() * 76))
+  map_g_rooms(Math.floor(Math.random() * 41) - 20 , Math.floor(Math.random() * 41) - 20)
+  map_g_rooms(Math.floor(Math.random() * 41) - 20 , Math.floor(Math.random() * 41) - 20)
+  map_g_rooms(Math.floor(Math.random() * 41) - 20 , Math.floor(Math.random() * 41) - 20)
+  map_g_rooms(Math.floor(Math.random() * 41) - 20 , Math.floor(Math.random() * 41) - 20)
+  map_g_rooms(Math.floor(Math.random() * 41) - 20 , Math.floor(Math.random() * 41) - 20)
 }
 
 document.addEventListener('click', () => { 
@@ -195,9 +255,12 @@ window.addEventListener('keydown', (event) => {
     }
     if (event.code === 'Space' && jump == 0)
     {
-      jump = 1;
-      last_jump_x = camera.position.x;
-      last_jump_y = camera.position.y;
+      if (can_I_jump(camera.position.x,camera.position.z))
+      {
+        jump = 1;
+        last_jump_x = camera.position.x;
+        last_jump_y = camera.position.y;
+      }
     }
     if (event.code ==='KeyX')
     {
@@ -248,335 +311,6 @@ function animate()
   {
     update_HP(HP);
   }
-
-  if (in_game == 1)
-  {
-    let stojim_na_zdi = 0;
-
-    for (let cube of Object.values(walls))
-    {
-      if (
-        camera.position.x >= cube.mesh.position.x - 0.52 &&
-        camera.position.x <= cube.mesh.position.x + 0.52 &&
-        camera.position.z >= cube.mesh.position.z - 0.52 &&
-        camera.position.z <= cube.mesh.position.z + 0.52
-      )
-      {
-        if (cube.y == 0.5)
-        {
-          stojim_na_zdi = 1;
-        }
-        else if (cube.y == 1)
-        {
-          camera.position.x = last_jump_x;
-          camera.position.y = last_jump_y;
-        }
-      }
-    }
-
-    if (stojim_na_zdi == 1)
-    {
-      floor_gravitation = 2;
-    }
-    else
-    {
-      floor_gravitation = 0;
-    }
-  }
-
-  // SKÁKÁNÍ
-  if (jump == 1)
-  {
-    now_gravitation += 0.13;
-    jump = 2;
-  }
-  else if (jump == 2)
-  {
-    now_gravitation += 0.13;
-    jump = 3;
-  }
-  else if (jump == 3)
-  {
-    now_gravitation += 0.13;
-    jump = 4;
-  }
-  else if (jump == 4)
-  {
-    now_gravitation += 0.13;
-    jump = 5;
-  }
-  else if (jump == 5)
-  {
-    now_gravitation += 0.13;
-    jump = 6;
-  }
-  else if (jump == 6)
-  {
-    now_gravitation += 0.13;
-    jump = 7;
-  }
-  else if (jump == 7)
-  {
-    now_gravitation += 0.13;
-    jump = 8;
-  }
-  else if (jump == 8)
-  {
-    now_gravitation += 0.13;
-    jump = 9;
-  }
-  else if (jump == 9)
-  {
-    now_gravitation += 0.13;
-    jump = 10;
-  }
-  else if (jump == 10)
-  {
-    now_gravitation += 0.13;
-    jump = 11;
-  }
-  else if (jump == 11)
-  {
-    if (now_gravitation > floor_gravitation)
-    {
-      now_gravitation -= 0.10;
-
-      if (now_gravitation <= floor_gravitation)
-      {
-        jump = 0;
-      }
-    }
-  }
-
-  // POHYB HRÁČE
-  if (in_game == 1) 
-  {
-    if (crouch == 1)
-    {
-      speed = 0.025;
-    }
-    else
-    {
-      speed = 0.05;
-    }
-
-    if (Shift_key === 1 && W_key === 1 && crouch == 0) 
-    {
-      speed = 0.15;
-    }
-
-    camera.getWorldDirection(smer_pohybu);
-
-    smer_pohybu.y = 0;
-    smer_pohybu.normalize();
-
-    jdu_v_bok.set(-smer_pohybu.z, 0, smer_pohybu.x);
-    jdu_v_bok.normalize();
-
-    let se_pohybuje = false;
-
-    // W
-    if (W_key === 1)
-    {
-      move_player(
-        smer_pohybu.x * speed,
-        smer_pohybu.z * speed
-      );
-
-      se_pohybuje = true;
-
-      if (Shift_key == 0)
-      {
-        footstep1.play();
-      }
-      else
-      {
-        footsteps_running.play();
-      }
-    }
-
-    // S
-    if (S_key === 1) 
-    {
-      move_player(
-        -smer_pohybu.x * speed,
-        -smer_pohybu.z * speed
-      );
-
-      se_pohybuje = true;
-
-      if (Shift_key == 0)
-      {
-        footstep1.play();
-      }
-      else if (crouch == 0)
-      {
-        footsteps_running.play();
-      }
-    }
-
-    // D
-    if (D_key === 1) 
-    {
-      move_player(
-        jdu_v_bok.x * speed,
-        jdu_v_bok.z * speed
-      );
-
-      se_pohybuje = true;
-
-      if (Shift_key == 0)
-      {
-        footstep1.play();
-      }
-      else
-      {
-        footsteps_running.play();
-      }
-    }
-
-    // A
-    if (A_key === 1) 
-    {
-      move_player(
-        -jdu_v_bok.x * speed,
-        -jdu_v_bok.z * speed
-      );
-
-      se_pohybuje = true;
-
-      if (Shift_key == 0)
-      {
-        footstep1.play();
-      }
-      else
-      {
-        footsteps_running.play();
-      }
-    }
-
-    // ANIMACE POHYBU RUKOU
-    if (se_pohybuje === true)
-    {
-      if (arm_position === 0) 
-      {
-        arm_position = 1;
-      }
-      else 
-      {
-        if (Shift_key == 0)
-        {
-          arm_position++;
-        }
-        else if (crouch == 0)
-        {
-          arm_position += 2;
-        }
-        else if (Shift_key == 1 && crouch == 1)
-        {
-          arm_position++;
-        }
-      }
-
-      if (arm_position >= 60)
-      {
-        arm_position = 1;
-      }
-    }
-    else
-    {
-      arm_position = 0;
-    }
-  }
-
-  // POZICE RUKOU
-  if (arm_position == 0)
-  {
-    if (buch == 0)
-    {
-      arm2_mesh.position.set(-0.4, -0.7, -0.9);
-      arm_mesh.position.set(0.3, -0.5, -0.8);
-    }
-    else if (buch == 1)
-    {
-      buch_arm = Math.round(Math.random());
-
-      if (buch_arm == 0)
-      {
-        arm2_mesh.position.set(-0.4, -0.7, -0.7);
-        arm_mesh.position.set(0.3, -0.45, -1.2); 
-      }
-      else
-      {
-        arm2_mesh.position.set(-0.4, -0.45, -1.15);
-        arm_mesh.position.set(0.3, -0.5, -0.6);
-      }
-
-      buch = 2;
-      zvuk_buchu.play();
-    }
-  }
-  else if (arm_position >= 1 && arm_position < 30)
-  {
-    arm2_mesh.position.set(-2, -5, -2);
-    arm_mesh.position.set(0.3, -0.45, -0.8); 
-  }
-  else if (arm_position >= 30 && arm_position < 60)
-  {
-    arm2_mesh.position.set(-0.4, -0.45, -0.8);
-    arm_mesh.position.set(-2, -5, -2);
-  }
-
-  if (crouch == 0)
-  {
-    camera.position.y = now_gravitation + 2;
-  }
-  else if (crouch == 1)
-  {
-    camera.position.y = now_gravitation + 1.25;
-  }
-
-  if (buch >= 2 && buch <= 50)
-  {
-    buch++;
-
-    if (buch_arm == 0)
-    {
-      arm2_mesh.position.set(-0.4, -0.7, -0.7);
-      arm_mesh.position.set(0.3, -0.45, -1.2); 
-    }
-    else
-    {
-      arm2_mesh.position.set(-0.4, -0.45, -1.15);
-      arm_mesh.position.set(0.3, -0.5, -0.6);
-    }
-  }
-  else if (buch > 50)
-  {
-    buch = 0;
-  }
-
-  if (now_gravitation > floor_gravitation && jump == 0 || jump == 20) 
-  {
-    now_gravitation -= 0.20;
-
-    if (now_gravitation < floor_gravitation) 
-    {
-      now_gravitation = floor_gravitation;
-    }
-
-    if (jump == 0) 
-    {
-      jump = 20;
-    }
-  }
-
-  if (jump == 20 && now_gravitation <= floor_gravitation) 
-  {
-    now_gravitation = floor_gravitation;
-    jump = 0;
-  }
-
   renderer.render(scene, camera);
 }
 
@@ -713,53 +447,200 @@ function shortest_path(start_x,start_z,target_x,target_z)
   return finded;
 }
 
-function map_g_rooms(x, z) 
+function map_g_rooms(x, z)
 {  
   let length_of_room = Math.floor(Math.random() * 11) + 10;
   let width_of_room = Math.floor(Math.random() * 11) + 10;
-  if (x + length_of_room > 40) 
+  let attemps = 0;
+
+  if(world_plan[(z + 40) * 80 + x + 40] == 1)
   {
-    length_of_room = 40 - x;
+    return;
   }
-  if (z + width_of_room > 40) 
+
+  let vse_ok = 0;
+  while(vse_ok == 0)
+  {  
+    if (attemps >= 100)
+    {
+      return;
+    }
+
+    if (x + length_of_room >= 40 || z + width_of_room >= 40) 
+    {
+      x = Math.floor(Math.random() * 41) - 20;
+      z = Math.floor(Math.random() * 41) - 20;
+      length_of_room = Math.floor(Math.random() * 11) + 10;
+      width_of_room = Math.floor(Math.random() * 11) + 10;
+      attemps++;
+      continue;
+    }
+
+    let kolize = 0;
+    
+    for (let cx = x; cx <= x + length_of_room; cx++)
+    {
+      if (world_plan[(z + 40) * 80 + (cx + 40)] == 1 || 
+          world_plan[(z + width_of_room + 40) * 80 + (cx + 40)] == 1)
+      {
+        kolize = 1;
+        break;
+      }
+    }
+
+    if (kolize == 0) {
+      for (let cz = z; cz <= z + width_of_room; cz++)
+      {
+        if (world_plan[(cz + 40) * 80 + (x + 40)] == 1 || 
+            world_plan[(cz + 40) * 80 + (x + length_of_room + 40)] == 1)
+        {
+          kolize = 1;
+          break;
+        }
+      }
+    }
+
+    if (kolize == 1)
+    {
+      x = Math.floor(Math.random() * 41) - 20;
+      z = Math.floor(Math.random() * 41) - 20;
+      length_of_room = Math.floor(Math.random() * 11) + 10;
+      width_of_room = Math.floor(Math.random() * 11) + 10;
+      attemps++;
+    }
+    else
+    {
+      vse_ok = 1;
+    }
+  }
+
+  function create_wall_cube(wall_x, wall_z, wall_y,door_axis) 
   {
-    width_of_room = 40 - z;
+    if (wall_y != 4)
+    {
+      let cube = new Walls();
+      cube.x = wall_x;
+      cube.z = wall_z; 
+      if (wall_y == 2)
+      {
+        cube.y = 2;
+        cube.geometry = new THREE.BoxGeometry(1, 4, 1);
+        cube.mesh = new THREE.Mesh(cube.geometry, cube_material);
+      }
+      else if (wall_y == 0)
+      {
+        cube.y = 3.20;
+        cube.geometry = new THREE.BoxGeometry(1, 1.6, 1);
+        cube.mesh = new THREE.Mesh(cube.geometry, door_block_materialy);
+        create_wall_cube(cube.x, cube.z, 4,door_axis);
+      }
+      else if (wall_y == 5)
+      {
+        cube.y = 4.5;
+        cube.geometry = new THREE.BoxGeometry(1, 1, 1);
+        cube.mesh = new THREE.Mesh(cube.geometry, roof_block_materialy);
+      }
+      cube.mesh.position.set(cube.x, cube.y, cube.z);
+      scene.add(cube.mesh);
+
+      if (wall_y != 5) 
+      {
+        world_plan[(cube.z + 40) * 80 + cube.x + 40] = 1;
+      }
+    }
+    else if (wall_y == 4)
+    {
+        let door = new Doors();
+        door.axis = door_axis;
+        door.x = wall_x;
+        door.z = wall_z;
+        door.y = 1.2;
+
+        door.pivot = new THREE.Group();
+
+        if (door.axis === "x")
+        {
+            door.geometry = new THREE.BoxGeometry(1, 2.4, 0.12);
+            door.mesh = new THREE.Mesh(door.geometry, door_material);
+
+            door.pivot.position.set(door.x - 0.5, 1.2, door.z);
+            door.mesh.position.set(0.5, 0, 0);
+        }
+
+        else
+        {
+            door.geometry = new THREE.BoxGeometry(0.12, 2.4, 1);
+            door.mesh = new THREE.Mesh(door.geometry, door_material);
+
+            door.pivot.position.set(door.x, 1.2, door.z - 0.5);
+            door.mesh.position.set(0, 0, 0.5);
+        }
+        door.open = 0;
+        door.pivot.rotation.y = 0;
+        door.pivot.add(door.mesh);
+        scene.add(door.pivot);
+
+        door.open = 0;
+
+        world_plan[(door.z + 40) * 81 + door.x + 40] = 1;
+    }
   }
-  if (length_of_room < 2 || width_of_room < 2) return;  
-  function create_wall_cube(wall_x, wall_z,wall_y) 
-  {
-    let cube = new Walls();
-    cube.x = wall_x;
-    cube.z = wall_z; 
-    cube.y = wall_y;
-    cube.geometry = new THREE.BoxGeometry(1, 1, 1);
-    cube.mesh = new THREE.Mesh(cube.geometry, cube_material);
-    cube.mesh.position.set(cube.x, cube.y, cube.z);
-    scene.add(cube.mesh);
-  }
+  
+  let dvere_x = Math.floor(Math.random() * (length_of_room - 1)) + 1;
+  let dvere_z = Math.floor(Math.random() * (width_of_room - 1)) + 1;
+  let dvere_kde_x = Math.round(Math.random());
+  let dvere_kde_y = Math.round(Math.random());
 
   for (let i = 0; i <= length_of_room; i++) 
   {
-    create_wall_cube(x + i, z,0.5);
-    create_wall_cube(x + i, z + width_of_room,0.5);
-    create_wall_cube(x + i, z,1.5);
-    create_wall_cube(x + i, z + width_of_room,1.5);
-    create_wall_cube(x + i, z,2.5);
-    create_wall_cube(x + i, z + width_of_room,2.5);    
-    create_wall_cube(x + i, z,3.5);
-    create_wall_cube(x + i, z + width_of_room,3.5);
+    if (i != dvere_x)
+    {
+      create_wall_cube(x + i, z, 2,0);
+      create_wall_cube(x + i, z + width_of_room, 2,0);
+    }
+    else
+    {
+      if (dvere_kde_x == 0)
+      {
+        create_wall_cube(x + i, z, 0,"x");
+        create_wall_cube(x + i, z + width_of_room, 2,0);  
+      }
+      else
+      {
+        create_wall_cube(x + i, z, 2,0);
+        create_wall_cube(x + i, z + width_of_room, 0,"x");  
+      }
+    }
   }
 
   for (let j = 1; j < width_of_room; j++) 
   {
-    create_wall_cube(x, z + j,0.5);
-    create_wall_cube(x + length_of_room, z + j,0.5);
-    create_wall_cube(x, z + j,1.5);
-    create_wall_cube(x + length_of_room, z + j,1.5);
-    create_wall_cube(x, z + j,2.5);
-    create_wall_cube(x + length_of_room, z + j,2.5);
-    create_wall_cube(x, z + j,3.5);
-    create_wall_cube(x + length_of_room, z + j,3.5);
+    if (j != dvere_z)
+    {
+      create_wall_cube(x, z + j, 2,0);
+      create_wall_cube(x + length_of_room, z + j, 2,0);
+    }
+    else
+    {
+      if (dvere_kde_y)
+      {
+        create_wall_cube(x, z + j, 0,"z");
+        create_wall_cube(x + length_of_room, z + j, 2,0);
+      }
+      else
+      {
+        create_wall_cube(x, z + j, 2,0);
+        create_wall_cube(x + length_of_room, z + j, 0,"z");
+      }
+    }
+  }
+
+  for (let i = -1; i < length_of_room + 2; i++)
+  {
+    for (let j = -1; j < width_of_room + 2; j++)
+    {
+      create_wall_cube(x + i, z + j, 5);
+    }
   }
 }
 
@@ -772,14 +653,49 @@ function collision(x, z)
 
     if (
       Math.abs(x - wall_x) < 0.8 &&
-      Math.abs(z - wall_z) < 0.8
-    )
+      Math.abs(z - wall_z) < 0.8 &&
+      cube.y == 2)
     {
       return true;
     }
   }
+  for (let door of Object.values(doors))
+  {
+      if (door.open === 1)
+      {
+          continue;
+      }
 
+      let wall_x = door.x;
+      let wall_z = door.z;
+
+      if (
+          Math.abs(x - wall_x) < 0.8 &&
+          Math.abs(z - wall_z) < 0.8
+      )
+      {
+          return true;
+      }
+  }
   return false;
+}
+
+function can_I_jump(x,z)
+{
+  for (let cube of Object.values(walls))
+  {
+    let wall_x = cube.mesh.position.x;
+    let wall_z = cube.mesh.position.z;
+
+    if (
+      Math.abs(x - wall_x) < 0.8 &&
+      Math.abs(z - wall_z) < 0.8 &&
+      cube.y == 3.2)
+    {
+      return false;
+    }
+  }
+  return true;
 }
 
 function move_player(dx, dz)
@@ -805,3 +721,371 @@ window.addEventListener('resize', () => {
     renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
+function am_I_movign()
+{
+  if (in_game == 1)
+  {
+    let stojim_na_zdi = 0;
+
+    for (let cube of Object.values(walls))
+    {
+      if (
+        camera.position.x >= cube.mesh.position.x - 0.52 &&
+        camera.position.x <= cube.mesh.position.x + 0.52 &&
+        camera.position.z >= cube.mesh.position.z - 0.52 &&
+        camera.position.z <= cube.mesh.position.z + 0.52
+      )
+      {
+        if (cube.y == 0.5)
+        {
+          stojim_na_zdi = 1;
+        }
+        else if (cube.y == 1)
+        {
+          camera.position.x = last_jump_x;
+          camera.position.y = last_jump_y;
+        }
+      }
+    }
+
+    if (stojim_na_zdi == 1)
+    {
+      floor_gravitation = 2;
+    }
+    else
+    {
+      floor_gravitation = 0;
+    }
+  }
+
+  if (jump == 1)
+  {
+    now_gravitation += 0.13;
+    jump = 2;
+  }
+  else if (jump == 2)
+  {
+    now_gravitation += 0.13;
+    jump = 3;
+  }
+  else if (jump == 3)
+  {
+    now_gravitation += 0.13;
+    jump = 4;
+  }
+  else if (jump == 4)
+  {
+    now_gravitation += 0.13;
+    jump = 5;
+  }
+  else if (jump == 5)
+  {
+    now_gravitation += 0.13;
+    jump = 6;
+  }
+  else if (jump == 6)
+  {
+    now_gravitation += 0.13;
+    jump = 7;
+  }
+  else if (jump == 7)
+  {
+    now_gravitation += 0.13;
+    jump = 8;
+  }
+  else if (jump == 8)
+  {
+    now_gravitation += 0.13;
+    jump = 9;
+  }
+  else if (jump == 9)
+  {
+    now_gravitation += 0.13;
+    jump = 10;
+  }
+  else if (jump == 10)
+  {
+    now_gravitation += 0.13;
+    jump = 11;
+  }
+  else if (jump == 11)
+  {
+    if (now_gravitation > floor_gravitation)
+    {
+      now_gravitation -= 0.10;
+    }
+
+    if (now_gravitation <= floor_gravitation)
+    {
+      now_gravitation = floor_gravitation;
+      jump = 0;
+    }
+  }
+  if (in_game == 1) 
+  {
+    if (crouch == 1)
+    {
+      speed = 0.025;
+    }
+    else
+    {
+      speed = 0.05;
+    }
+
+    if (Shift_key === 1 && W_key === 1 && crouch == 0) 
+    {
+      speed = 0.15;
+    }
+
+    camera.getWorldDirection(smer_pohybu);
+
+    smer_pohybu.y = 0;
+    smer_pohybu.normalize();
+
+    jdu_v_bok.set(-smer_pohybu.z, 0, smer_pohybu.x);
+    jdu_v_bok.normalize();
+
+    let se_pohybuje = false;
+
+    if (W_key === 1)
+    {
+      move_player(
+        smer_pohybu.x * speed,
+        smer_pohybu.z * speed
+      );
+
+      se_pohybuje = true;
+
+      if (Shift_key == 0)
+      {
+        footstep1.play();
+      }
+      else
+      {
+        footsteps_running.play();
+      }
+    }
+
+    if (S_key === 1) 
+    {
+      move_player(
+        -smer_pohybu.x * speed,
+        -smer_pohybu.z * speed
+      );
+
+      se_pohybuje = true;
+
+      if (Shift_key == 0)
+      {
+        footstep1.play();
+      }
+      else if (crouch == 0)
+      {
+        footsteps_running.play();
+      }
+    }
+
+    if (D_key === 1) 
+    {
+      move_player(
+        jdu_v_bok.x * speed,
+        jdu_v_bok.z * speed
+      );
+
+      se_pohybuje = true;
+
+      if (Shift_key == 0)
+      {
+        footstep1.play();
+      }
+      else
+      {
+        footsteps_running.play();
+      }
+    }
+
+    if (A_key === 1) 
+    {
+      move_player(
+        -jdu_v_bok.x * speed,
+        -jdu_v_bok.z * speed
+      );
+
+      se_pohybuje = true;
+
+      if (Shift_key == 0)
+      {
+        footstep1.play();
+      }
+      else
+      {
+        footsteps_running.play();
+      }
+    }
+
+    if (se_pohybuje === true)
+    {
+      if (arm_position === 0) 
+      {
+        arm_position = 1;
+      }
+      else 
+      {
+        if (Shift_key == 0)
+        {
+          arm_position++;
+        }
+        else if (crouch == 0)
+        {
+          arm_position += 2;
+        }
+        else if (Shift_key == 1 && crouch == 1)
+        {
+          arm_position++;
+        }
+      }
+
+      if (arm_position >= 60)
+      {
+        arm_position = 1;
+      }
+    }
+    else
+    {
+      arm_position = 0;
+    }
+  }
+  if (arm_position == 0)
+  {
+    if (buch == 0)
+    {
+      arm2_mesh.position.set(-0.4, -0.7, -0.9);
+      arm_mesh.position.set(0.3, -0.5, -0.8);
+    }
+    else if (buch == 1)
+    {
+      buch_arm = Math.round(Math.random());
+
+      if (buch_arm == 0)
+      {
+        arm2_mesh.position.set(-0.4, -0.7, -0.7);
+        arm_mesh.position.set(0.3, -0.45, -1.2); 
+      }
+      else
+      {
+        arm2_mesh.position.set(-0.4, -0.45, -1.15);
+        arm_mesh.position.set(0.3, -0.5, -0.6);
+      }
+
+      buch = 2;
+      zvuk_buchu.play();
+    }
+  }
+  else if (arm_position >= 1 && arm_position < 30)
+  {
+    arm2_mesh.position.set(-2, -5, -2);
+    arm_mesh.position.set(0.3, -0.45, -0.8); 
+  }
+  else if (arm_position >= 30 && arm_position < 60)
+  {
+    arm2_mesh.position.set(-0.4, -0.45, -0.8);
+    arm_mesh.position.set(-2, -5, -2);
+  }
+
+  if (crouch == 0)
+  {
+    camera.position.y = now_gravitation + 2;
+  }
+  else if (crouch == 1)
+  {
+    camera.position.y = now_gravitation + 1.25;
+  }
+
+  if (buch >= 2 && buch <= 50)
+  {
+    buch++;
+
+    if (buch_arm == 0)
+    {
+      arm2_mesh.position.set(-0.4, -0.7, -0.7);
+      arm_mesh.position.set(0.3, -0.45, -1.2); 
+    }
+    else
+    {
+      arm2_mesh.position.set(-0.4, -0.45, -1.15);
+      arm_mesh.position.set(0.3, -0.5, -0.6);
+    }
+  }
+  else if (buch > 50)
+  {
+    buch = 0;
+  }
+
+  if (now_gravitation > floor_gravitation && jump == 0 || jump == 20) 
+  {
+    now_gravitation -= 0.20;
+
+    if (now_gravitation < floor_gravitation) 
+    {
+      now_gravitation = floor_gravitation;
+    }
+
+    if (jump == 0) 
+    {
+      jump = 20;
+      }
+  }
+
+  if (jump == 20 && now_gravitation <= floor_gravitation) 
+  {
+    now_gravitation = floor_gravitation;
+    jump = 0;
+  }
+
+}
+
+window.addEventListener('pointerdown', onPointerDown);
+
+function onPointerDown(event)
+{
+    if (event.button !== 2 || in_game !== 1)
+    {
+        return;
+    }
+
+    pointer.set(0, 0);
+    raycaster.setFromCamera(pointer, camera);
+
+    const door_list = Object.values(doors);
+    const door_meshes = door_list.map(door => door.mesh);
+
+    const intersects = raycaster.intersectObjects(door_meshes);
+
+    if (intersects.length === 0)
+    {
+        return;
+    }
+
+    const hit_mesh = intersects[0].object;
+    const door = door_list.find(d => d.mesh === hit_mesh);
+
+    if (!door)
+    {
+        return;
+    }
+
+    door.open = door.open === 0 ? 1 : 0;
+
+    if (door.open === 1)
+    {
+        door.pivot.rotation.y = -Math.PI / 2;
+    }
+    else
+    {
+        door.pivot.rotation.y = 0;
+    }
+}
+
+window.addEventListener('contextmenu', (event) => {
+    event.preventDefault();
+});
