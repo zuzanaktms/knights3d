@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { PointerLockControls } from './sources/addons/PointerLock.js';
+import * as BufferGeometryUtils from './sources/utils/BufferGeometryUtils.js';
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -124,6 +125,52 @@ class Doors
   }
 }/*}}}*/
 
+class Mods
+{/*{{{*/
+  constructor()
+  {
+    this.cil_x = 0;
+    this.cil_z = 0;
+    this.zmena = 0;
+    this.type = 0;
+    this.x = 0;
+    this.y = 0;
+    this.z = 0;
+    this.mesh = 0;
+    this.id = g_id++;
+    mods[this.id] = this;
+  } 
+
+  move()
+  {
+    if (this.cil_z != this.z || this.cil_x != this.x)
+    {
+      if (any_path(this.x,this.z,this.cil_x,this.cil_z))
+      {
+        
+      }
+    }
+  }
+
+}/*}}}*/
+
+class Piece
+{
+  constructor()
+  {
+    this.id = g_id++;
+    this.x;
+    this.z;
+    this.h;
+    this.g;
+    this.f;
+    this.come_from_x;
+    this.come_from_z;
+    this.am_I_start = 0;
+    pieces[this.id] = this;
+  }
+}
+
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
 const mouse_control = new PointerLockControls(camera, document.body);
@@ -144,7 +191,9 @@ const footstep1 = new Audio('./sources/sounds/footstep1.wav');
 const footsteps_running = new Audio('./sources/sounds/footsteps_running.wav');
 const wooden_door_open = new Audio('./sources/sounds/wooden_door_open.wav');
 const wooden_door_close = new Audio('./sources/sounds/wooden_door_close.wav');
-footstep1.volume = 0.45;
+footstep1.volume = 0.40;
+wooden_door_close.volume = 0.40;
+wooden_door_open.volume = 0.40;
 
 let speed = 0.05;
 let in_game = 0;
@@ -176,6 +225,8 @@ const barva_noc = new THREE.Color(0x111122);
 let walls = {};
 let doors = {};
 let world_plan = [];
+let mods = {};
+let pieces = {};
 
 arm2_mesh.position.set(-0.4, -0.7, -0.9);
 camera.add(arm2_mesh);
@@ -190,6 +241,10 @@ scene.add(floor);
 //calling important functions
 setInterval(am_I_movign,13);
 setInterval(onPointerDown,100);
+spawn_mods("chicken");
+
+let path = shortesh_path(0,0,20,30);
+console.log(path);
 
 document.addEventListener('click', () => { 
   if (in_game == 1 && buch == 0)/*{{{*/
@@ -418,7 +473,7 @@ function made_walls()
   }
 }/*}}}*/
 
-function shortest_path(start_x,start_z,target_x,target_z)
+function any_path(start_x,start_z,target_x,target_z)
 {/*{{{*/
   let checked = [];
   checked[(start_z + 40) * 80 + start_x + 40] = 1;
@@ -477,6 +532,146 @@ function shortest_path(start_x,start_z,target_x,target_z)
   }
 
   return finded;
+}/*}}}*/
+
+function shortesh_path(start_x,start_z,target_x,target_z)
+{/*{{{*/
+  pieces = {}; 
+  let checked = {};
+  let ready = [[start_z + 40,start_x + 40,0]];
+  
+  let start_piece = new Piece();
+  start_piece.x = start_x + 40;
+  start_piece.z = start_z + 40;
+  start_piece.f = 0;
+  start_piece.h = 0;
+  start_piece.g = 0;
+  start_piece.am_I_start = 1;
+  pieces[`${start_piece.z},${start_piece.x}`] = start_piece;
+
+  const cil_x = target_x + 40;
+  const cil_z = target_z + 40;
+
+  while (ready.length)
+  {
+    let g_g = 0;
+    let check = ready.shift();
+    
+    if (checked[`${check[0]},${check[1]}`])
+    {
+      continue;
+    }
+    checked[`${check[0]},${check[1]}`] = true;
+
+    let aktualni_piece = pieces[`${check[0]},${check[1]}`];
+    if (aktualni_piece) {
+      g_g = aktualni_piece.g + 1;
+    } else {
+      g_g = 1;
+    }
+
+    if (check[0] == cil_z && check[1] == cil_x)
+    {
+      let finded = 0;
+      let last_x_parents = check[1];
+      let last_z_parents = check[0];
+      let x_of_parent = check[1];
+      let z_of_parent = check[0];
+      
+      while (finded == 0)
+      {
+        let p = pieces[`${z_of_parent},${x_of_parent}`];
+        if (p)
+        {
+          if (p.am_I_start == 1)
+          {
+            return [last_z_parents - 40, last_x_parents - 40];
+          }
+          else
+          {
+            last_x_parents = x_of_parent;
+            last_z_parents = z_of_parent;
+            x_of_parent = p.come_from_x;
+            z_of_parent = p.come_from_z;
+          }
+        }
+        else
+        {
+          return 0;
+        }
+      }
+    }
+
+    if (world_plan[check[0] * 81 + (check[1] + 1)] != 1 && check[1] + 1 <= 80)
+    {
+      let piece = new Piece();
+      piece.x = check[1] + 1;
+      piece.z = check[0];
+      piece.g = g_g;
+      let rozdil_x = Math.abs(piece.x - cil_x);
+      let rozdil_z = Math.abs(piece.z - cil_z);
+      piece.h = rozdil_z + rozdil_x;
+      piece.f = piece.h + piece.g;
+      piece.come_from_z = check[0];
+      piece.come_from_x = check[1];
+      
+      pieces[`${piece.z},${piece.x}`] = piece;
+      ready.push([check[0],check[1] + 1,piece.f]);
+    }
+
+    if (world_plan[check[0] * 81 + (check[1] - 1)] != 1 && check[1] - 1 >= 0)
+    {
+      let piece = new Piece();
+      piece.x = check[1] - 1;
+      piece.z = check[0];
+      piece.g = g_g;
+      let rozdil_x = Math.abs(piece.x - cil_x);
+      let rozdil_z = Math.abs(piece.z - cil_z);
+      piece.h = rozdil_z + rozdil_x;
+      piece.f = piece.h + piece.g;
+      piece.come_from_z = check[0];
+      piece.come_from_x = check[1];
+      
+      pieces[`${piece.z},${piece.x}`] = piece;
+      ready.push([check[0],check[1] - 1,piece.f]);
+    }
+
+    if (world_plan[(check[0] + 1) * 81 + check[1]] != 1 && check[0] + 1 <= 80)
+    {
+      let piece = new Piece();
+      piece.x = check[1];
+      piece.z = check[0] + 1;
+      piece.g = g_g;
+      let rozdil_x = Math.abs(piece.x - cil_x);
+      let rozdil_z = Math.abs(piece.z - cil_z);
+      piece.h = rozdil_z + rozdil_x;
+      piece.f = piece.h + piece.g;
+      piece.come_from_z = check[0];
+      piece.come_from_x = check[1];
+      
+      pieces[`${piece.z},${piece.x}`] = piece;
+      ready.push([check[0] + 1,check[1],piece.f]);
+    }
+
+    if (world_plan[(check[0] - 1) * 81 + check[1]] != 1 && check[0] - 1 >= 0)
+    {
+      let piece = new Piece();
+      piece.x = check[1];
+      piece.z = check[0] - 1;
+      piece.g = g_g;
+      let rozdil_x = Math.abs(piece.x - cil_x);
+      let rozdil_z = Math.abs(piece.z - cil_z);
+      piece.h = rozdil_z + rozdil_x;
+      piece.f = piece.h + piece.g;
+      piece.come_from_z = check[0];
+      piece.come_from_x = check[1];
+      
+      pieces[`${piece.z},${piece.x}`] = piece;
+      ready.push([check[0] - 1,check[1],piece.f]);
+    }
+    ready.sort((a, b) => a[2] - b[2]);
+  }
+  return 0;
 }/*}}}*/
 
 function map_g_rooms(x, z)
@@ -614,7 +809,7 @@ function map_g_rooms(x, z)
 
         door.open = 0;
 
-        world_plan[(door.z + 40) * 81 + door.x + 40] = 1;
+        world_plan[(door.z + 40) * 80 + door.x + 40] = 1;
     }
   }
   
@@ -1097,7 +1292,15 @@ function onPointerDown()
 
     const hit_mesh = intersects[0].object;
     const door = door_list.find(d => d.mesh === hit_mesh);
-    if (door && E_key == 1 && door.opening == 0)
+    let is_player_in_door = 0;
+    if (door.x == Math.round(camera.position.x))
+    {
+      if (door.z == Math.round(camera.position.z))
+      {
+        is_player_in_door = 1; 
+      }
+    }
+    if (door && E_key == 1 && door.opening == 0 && is_player_in_door == 0)
     {
       door.open = door.open === 0 ? 1 : 0;
 
@@ -1169,4 +1372,78 @@ window.addEventListener('contextmenu', (event) => {
     event.preventDefault();
 });/*}}}*/
 
+function spawn_mods(mod)
+{/*{{{*/
+  if (mod == "chicken")
+  {
+    let vse_ok = 0;
+    let attemps = 0;
+    let chicken = new Mods();
+
+    while (vse_ok == 0)
+    {
+      let kolize = 0;
+      attemps++;
+
+      if (attemps >= 100)
+      {
+        delete mods[chicken.id];
+        return;
+      }
+
+      chicken.x = Math.floor(Math.random() * 79) - 39;
+      chicken.z = Math.floor(Math.random() * 79) - 39;
+
+      if (world_plan[(chicken.z + 40) * 80 + chicken.x + 40] == 1)
+      {
+        kolize = 1;
+      }
+
+      if (kolize == 0)
+      {
+        vse_ok = 1;
+      }
+    }
+    chicken.cil_y = chicken.y;
+    chicken.cil_x = chicken.x;
+    chicken.y = 0;
+
+    const material = new THREE.MeshStandardMaterial({color: 0x991b1b});
+
+    chicken.mesh = new THREE.Group();
+
+    function add_chicken_part(geometry)
+    {
+      const part = new THREE.Mesh(geometry, material);
+      part.castShadow = true;
+      part.receiveShadow = true;
+      chicken.mesh.add(part);
+    }
+
+    const leg1 = new THREE.BoxGeometry(0.10,0.4,0.10);
+    leg1.translate(0,0.2,-0.25);
+    add_chicken_part(leg1);
+
+    const leg2 = new THREE.BoxGeometry(0.10,0.4,0.10);
+    leg2.translate(0,0.2,0.25);
+    add_chicken_part(leg2);
+
+    const body = new THREE.BoxGeometry(1.1,0.9,0.9);
+    body.translate(0,0.82,0);
+    add_chicken_part(body);
+
+    const head = new THREE.BoxGeometry(0.5,0.7,0.7);
+    head.translate(0.6,1.27,0);
+    add_chicken_part(head);
+
+    chicken.mesh.position.set(
+      chicken.x,
+      chicken.y,
+      chicken.z
+    );
+
+    scene.add(chicken.mesh);
+    chicken.type = "chicken";
+  }
+}/*}}}*/
 
