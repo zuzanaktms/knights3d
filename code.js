@@ -20,7 +20,7 @@ else
 }
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x111116);
+scene.background = new THREE.Color(0x87ceeb);
 
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
 scene.add(ambientLight);
@@ -33,6 +33,7 @@ const down_block_door_texture = texture_loader.load('./sources/images/wood_door_
 const roof_up_block = texture_loader.load('./sources/images/roof_up_texture.png');
 const roof_down_block = texture_loader.load('./sources/images/roof_down_texture.png');
 const door_blok = texture_loader.load('./sources/images/wooden_door.png');
+const door_uzky_blok = texture_loader.load('./sources/images/wooden_door_other_side.png');
 
 floor_texture.wrapS = THREE.RepeatWrapping;
 floor_texture.wrapT = THREE.RepeatWrapping;
@@ -43,6 +44,7 @@ const door_block_down_material = new THREE.MeshStandardMaterial({ map: down_bloc
 const roof_up_block_mat = new THREE.MeshStandardMaterial({map: roof_up_block});
 const roof_down_block_mat = new THREE.MeshStandardMaterial({map: roof_down_block});
 const door_material = new THREE.MeshStandardMaterial({map: door_blok});
+const door_uzky_material = new THREE.MeshStandardMaterial({map: door_uzky_blok});
 
 const directionalLight = new THREE.DirectionalLight(0xffffff, 1.2);
 directionalLight.position.set(5, 10, 7);
@@ -81,6 +83,16 @@ const roof_block_materialy = [
   roof_up_block_mat  
 ];
 
+const doors_block_materialy = [
+  door_uzky_material,
+  door_uzky_material,
+  door_uzky_material,
+  door_uzky_material,
+  door_material,
+  door_material  
+];
+
+
 class Walls
 {/*{{{*/
   constructor()
@@ -99,6 +111,7 @@ class Doors
 {/*{{{*/
   constructor()
   {
+    this.opening = 0;
     this.axis = 0;
     this.x = 0;
     this.y = 0;
@@ -129,6 +142,8 @@ const jdu_v_bok = new THREE.Vector3();
 const zvuk_buchu = new Audio('./sources/sounds/buch_sound.wav');
 const footstep1 = new Audio('./sources/sounds/footstep1.wav');
 const footsteps_running = new Audio('./sources/sounds/footsteps_running.wav');
+const wooden_door_open = new Audio('./sources/sounds/wooden_door_open.wav');
+const wooden_door_close = new Audio('./sources/sounds/wooden_door_close.wav');
 footstep1.volume = 0.45;
 
 let speed = 0.05;
@@ -153,8 +168,11 @@ let g_id = 0;
 let fall = 0;
 let last_jump_x = 0;
 let last_jump_y = 0;
+let cas_zmneny_noc_a_dne = 0;
 let random_footstep = 0;
 const max_HP = 100;
+const barva_den = new THREE.Color(0x87ceeb);
+const barva_noc = new THREE.Color(0x111122); 
 let walls = {};
 let doors = {};
 let world_plan = [];
@@ -321,7 +339,10 @@ function animate()
   {
     update_HP(HP);
   }
-  
+  cas_zmneny_noc_a_dne += 0.0005;
+  let faktor = (Math.sin(cas_zmneny_noc_a_dne) + 1) / 2; 
+  scene.background.copy(barva_noc).lerp(barva_den, faktor);
+
   renderer.render(scene, camera);
 }/*}}}*/
 
@@ -572,7 +593,7 @@ function map_g_rooms(x, z)
         if (door.axis === "x")
         {
             door.geometry = new THREE.BoxGeometry(1, 2.4, 0.12);
-            door.mesh = new THREE.Mesh(door.geometry, door_material);
+            door.mesh = new THREE.Mesh(door.geometry, doors_block_materialy);
 
             door.pivot.position.set(door.x - 0.5, 1.2, door.z);
             door.mesh.position.set(0.5, 0, 0);
@@ -1076,17 +1097,66 @@ function onPointerDown()
 
     const hit_mesh = intersects[0].object;
     const door = door_list.find(d => d.mesh === hit_mesh);
-    if (door && E_key == 1)
+    if (door && E_key == 1 && door.opening == 0)
     {
       door.open = door.open === 0 ? 1 : 0;
 
       if (door.open === 1)
       {
-          door.pivot.rotation.y = -Math.PI / 2;
+          door.opening = 1;
+          wooden_door_open.play();
+          door.pivot.rotation.y = -((Math.PI / 2) / 8) * 1;
+          setTimeout(() => {
+            door.pivot.rotation.y = -((Math.PI / 2) / 8) * 2;
+          },125);
+          setTimeout(() => {
+            door.pivot.rotation.y = -((Math.PI / 2) / 8) * 3;
+          },250);
+          setTimeout(() => {
+            door.pivot.rotation.y = -((Math.PI / 2) / 8) * 4;
+          },375);
+          setTimeout(() => {
+            door.pivot.rotation.y = -((Math.PI / 2) / 8) * 5;
+          },500);
+          setTimeout(() => {
+            door.pivot.rotation.y = -((Math.PI / 2) / 8) * 6;
+          },625);
+          setTimeout(() => {
+            door.pivot.rotation.y = -((Math.PI / 2) / 8) * 7;
+          },750);
+          setTimeout(() => {
+            door.pivot.rotation.y = -((Math.PI / 2) / 8) * 8;
+            door.opening = 0;
+          },875);
       }
       else
       {
-          door.pivot.rotation.y = 0;
+          door.opening = 1;
+          wooden_door_close.play();
+          door.pivot.rotation.y = -((Math.PI / 2) / 8) * 7;
+          setTimeout(() => {
+            door.pivot.rotation.y = -((Math.PI / 2) / 8) * 6;
+          },125);
+          setTimeout(() => {
+            door.pivot.rotation.y = -((Math.PI / 2) / 8) * 5;
+          },250);
+          setTimeout(() => {
+            door.pivot.rotation.y = -((Math.PI / 2) / 8) * 4;
+          },375);
+          setTimeout(() => {
+            door.pivot.rotation.y = -((Math.PI / 2) / 8) * 3;
+          },500);
+          setTimeout(() => {
+            door.pivot.rotation.y = -((Math.PI / 2) / 8) * 2;
+          },625);
+          setTimeout(() => {
+            door.pivot.rotation.y = -((Math.PI / 2) / 8) * 1;
+          },750);
+          setTimeout(() => {
+            door.pivot.rotation.y = 0;
+            door.opening = 0
+          },875);
+
       }
     }
     else
@@ -1098,3 +1168,5 @@ function onPointerDown()
 window.addEventListener('contextmenu', (event) => {
     event.preventDefault();
 });/*}}}*/
+
+
