@@ -35,6 +35,9 @@ const roof_up_block = texture_loader.load('./sources/images/roof_up_texture.png'
 const roof_down_block = texture_loader.load('./sources/images/roof_down_texture.png');
 const door_blok = texture_loader.load('./sources/images/wooden_door.png');
 const door_uzky_blok = texture_loader.load('./sources/images/wooden_door_other_side.png');
+const slepice_noha = texture_loader.load('./sources/images/chicken_leg.png');
+const slepice_telo = texture_loader.load('./sources/images/body_chicken.png');
+const slepice_hlava = texture_loader.load('./sources/images/head_chicken.png');
 
 floor_texture.wrapS = THREE.RepeatWrapping;
 floor_texture.wrapT = THREE.RepeatWrapping;
@@ -50,11 +53,20 @@ const door_uzky_material = new THREE.MeshStandardMaterial({map: door_uzky_blok})
 const directionalLight = new THREE.DirectionalLight(0xffffff, 1.2);
 directionalLight.position.set(5, 10, 7);
 
-directionalLight.castShadow = true;
 directionalLight.shadow.mapSize.width = 2048;
 directionalLight.shadow.mapSize.height = 2048;
-directionalLight.shadow.camera.near = 0.5;
-directionalLight.shadow.camera.far = 25;
+
+directionalLight.shadow.camera.left = -45;
+directionalLight.shadow.camera.right = 45;
+directionalLight.shadow.camera.top = 45;
+directionalLight.shadow.camera.bottom = -45;
+
+directionalLight.shadow.camera.near = 0.1;
+directionalLight.shadow.camera.far = 150;
+
+directionalLight.shadow.bias = -0.0005;
+
+directionalLight.shadow.camera.updateProjectionMatrix();
 
 scene.add(directionalLight);
 
@@ -131,11 +143,18 @@ class Mods
   {
     this.cil_x = 0;
     this.cil_z = 0;
+    this.next_cil_x = 0;
+    this.next_cil_z = 0;
     this.zmena = 0;
     this.type = 0;
     this.x = 0;
     this.y = 0;
     this.z = 0;
+    this.speed = 0.05;
+    this.angel = 0;
+    this.any_cil = 0;
+    this.path = [];
+    this.path_piece = 0;
     this.mesh = 0;
     this.id = g_id++;
     mods[this.id] = this;
@@ -143,19 +162,56 @@ class Mods
 
   move()
   {
-    if (this.cil_z != this.z || this.cil_x != this.x)
+    if (this.any_cil == 0)
     {
-      if (any_path(this.x,this.z,this.cil_x,this.cil_z))
-      {
-        
+      this.any_cil = 1;
+      this.path = shortesh_path(
+        this.x, this.z,
+        this.cil_x, this.cil_z
+      );
+
+      if (this.path === 0) {
+        this.any_cil = 0;
+        return;
       }
+      this.path_piece = 0;
+      this.next_cil_z = this.path[this.path_piece][0];
+      this.next_cil_x = this.path[this.path_piece][1];
+    }
+    else
+    {
+      const xd = this.next_cil_x - this.x;
+      const zd = this.next_cil_z - this.z;
+      const d = Math.sqrt(xd*xd + zd*zd);
+      this.angel = Math.atan2(xd, zd);
+      this.mesh.rotation.y = this.angel - (Math.PI / 2);
+      if (d <= this.speed || d == 0)
+      {
+        this.x = this.next_cil_x;
+        this.z = this.next_cil_z;
+        this.path_piece++;
+        if (this.path_piece >= this.path.length)
+        {
+            this.any_cil = 0;
+            this.path = [];
+            return;
+        }
+        this.next_cil_z = this.path[this.path_piece][0];
+        this.next_cil_x = this.path[this.path_piece][1];
+      }
+      else
+      {
+        this.x += xd/d * this.speed;
+        this.z += zd/d * this.speed;
+      }
+      this.mesh.position.set(this.x, this.y, this.z);
     }
   }
 
 }/*}}}*/
 
 class Piece
-{
+{/*{{{*/
   constructor()
   {
     this.id = g_id++;
@@ -169,7 +225,7 @@ class Piece
     this.am_I_start = 0;
     pieces[this.id] = this;
   }
-}
+}/*}}}*/
 
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
@@ -243,9 +299,6 @@ setInterval(am_I_movign,13);
 setInterval(onPointerDown,100);
 spawn_mods("chicken");
 
-let path = shortesh_path(0,0,20,30);
-console.log(path);
-
 document.addEventListener('click', () => { 
   if (in_game == 1 && buch == 0)/*{{{*/
   {
@@ -273,14 +326,14 @@ document.addEventListener('click', () => {
   }
 });/*}}}*/
 
-if (in_game == 0)
-{/*{{{*/
-  map_g_rooms(Math.floor(Math.random() * 41) - 20 , Math.floor(Math.random() * 41) - 20)
-  map_g_rooms(Math.floor(Math.random() * 41) - 20 , Math.floor(Math.random() * 41) - 20)
-  map_g_rooms(Math.floor(Math.random() * 41) - 20 , Math.floor(Math.random() * 41) - 20)
-  map_g_rooms(Math.floor(Math.random() * 41) - 20 , Math.floor(Math.random() * 41) - 20)
-  map_g_rooms(Math.floor(Math.random() * 41) - 20 , Math.floor(Math.random() * 41) - 20)
-}/*}}}*/
+//if (in_game == 0)
+//{/*{{{*/
+//  map_g_rooms(Math.floor(Math.random() * 41) - 20 , Math.floor(Math.random() * 41) - 20)
+//  map_g_rooms(Math.floor(Math.random() * 41) - 20 , Math.floor(Math.random() * 41) - 20)
+//  map_g_rooms(Math.floor(Math.random() * 41) - 20 , Math.floor(Math.random() * 41) - 20)
+//  map_g_rooms(Math.floor(Math.random() * 41) - 20 , Math.floor(Math.random() * 41) - 20)
+//  map_g_rooms(Math.floor(Math.random() * 41) - 20 , Math.floor(Math.random() * 41) - 20)
+//}/*}}}*/
 
 document.addEventListener('click', () => { 
   mouse_control.lock();/*{{{*/
@@ -397,6 +450,53 @@ function animate()
   cas_zmneny_noc_a_dne += 0.0005;
   let faktor = (Math.sin(cas_zmneny_noc_a_dne) + 1) / 2; 
   scene.background.copy(barva_noc).lerp(barva_den, faktor);
+  
+  for (let mob of Object.values(mods))
+  {
+    let vse_okk = 0;
+    if (mob.any_cil == 0)
+    {
+      let will_I_come = Math.floor(Math.random() * 35);
+      if (will_I_come == 6)
+      {
+        let plus_x = 0;
+        let plus_z = 0;
+        let attemps = 0;
+        for (let pokus = 0; pokus < 30; pokus++)
+        {
+            let plus_x = Math.floor(Math.random() * 7) - 3;
+            let plus_z = Math.floor(Math.random() * 7) - 3;
+
+            let next_x = mob.x + plus_x;
+            let next_z = mob.z + plus_z;
+
+            if (next_x < -40 || next_x > 40 ||
+                next_z < -40 || next_z > 40)
+            {
+                continue;
+            }
+
+            let index = (next_z + 40) * 80 + (next_x + 40);
+
+            if (world_plan[index] !== 1)
+            {
+                mob.cil_x = next_x;
+                mob.cil_z = next_z;
+                vse_okk = 1;
+                break;
+            }
+        }
+      }
+
+      if (vse_okk == 0)
+      {
+          mob.cil_x = mob.x;
+          mob.cil_z = mob.z;
+          mob.any_cil = 0;
+      }
+    }
+    mob.move();
+  }
 
   renderer.render(scene, camera);
 }/*}}}*/
@@ -534,146 +634,103 @@ function any_path(start_x,start_z,target_x,target_z)
   return finded;
 }/*}}}*/
 
-function shortesh_path(start_x,start_z,target_x,target_z)
-{/*{{{*/
-  pieces = {}; 
-  let checked = {};
-  let ready = [[start_z + 40,start_x + 40,0]];
-  
-  let start_piece = new Piece();
-  start_piece.x = start_x + 40;
-  start_piece.z = start_z + 40;
-  start_piece.f = 0;
-  start_piece.h = 0;
-  start_piece.g = 0;
-  start_piece.am_I_start = 1;
-  pieces[`${start_piece.z},${start_piece.x}`] = start_piece;
+function shortesh_path(start_x, start_z, target_x, target_z)
+{
+    const SIZE = 81;
+    const CELLS = SIZE * SIZE;
 
-  const cil_x = target_x + 40;
-  const cil_z = target_z + 40;
+    const startX = Math.round(start_x + 40);
+    const startZ = Math.round(start_z + 40);
+    const targetX = Math.round(target_x + 40);
+    const targetZ = Math.round(target_z + 40);
 
-  while (ready.length)
-  {
-    let g_g = 0;
-    let check = ready.shift();
-    
-    if (checked[`${check[0]},${check[1]}`])
-    {
-      continue;
-    }
-    checked[`${check[0]},${check[1]}`] = true;
-
-    let aktualni_piece = pieces[`${check[0]},${check[1]}`];
-    if (aktualni_piece) {
-      g_g = aktualni_piece.g + 1;
-    } else {
-      g_g = 1;
+    if (
+        startX < 0 || startX >= SIZE ||
+        startZ < 0 || startZ >= SIZE ||
+        targetX < 0 || targetX >= SIZE ||
+        targetZ < 0 || targetZ >= SIZE
+    ) {
+        return 0;
     }
 
-    if (check[0] == cil_z && check[1] == cil_x)
+    const start = startZ * SIZE + startX;
+    const target = targetZ * SIZE + targetX;
+
+    if (world_plan[target] == 1)
     {
-      let finded = 0;
-      let last_x_parents = check[1];
-      let last_z_parents = check[0];
-      let x_of_parent = check[1];
-      let z_of_parent = check[0];
-      
-      while (finded == 0)
-      {
-        let p = pieces[`${z_of_parent},${x_of_parent}`];
-        if (p)
+        return 0;
+    }
+
+    const visited = new Uint8Array(CELLS);
+    const parent = new Int32Array(CELLS);
+    const queue = new Int32Array(CELLS);
+
+    parent.fill(-1);
+
+    let head = 0;
+    let tail = 0;
+
+    queue[tail++] = start;
+    visited[start] = 1;
+
+    const directions = [
+        1, -1, SIZE, -SIZE
+    ];
+
+    while (head < tail)
+    {
+        const current = queue[head++];
+
+        if (current == target)
         {
-          if (p.am_I_start == 1)
-          {
-            return [last_z_parents - 40, last_x_parents - 40];
-          }
-          else
-          {
-            last_x_parents = x_of_parent;
-            last_z_parents = z_of_parent;
-            x_of_parent = p.come_from_x;
-            z_of_parent = p.come_from_z;
-          }
+            break;
         }
-        else
+
+        const x = current % SIZE;
+        const z = Math.floor(current / SIZE);
+
+        for (let dir of directions)
         {
-          return 0;
+            const next = current + dir;
+
+            if (dir == 1 && x == 80) continue;
+            if (dir == -1 && x == 0) continue;
+            if (dir == SIZE && z == 80) continue;
+            if (dir == -SIZE && z == 0) continue;
+
+            if (visited[next] == 1) continue;
+            if (world_plan[next] == 1) continue;
+
+            visited[next] = 1;
+            parent[next] = current;
+
+            queue[tail++] = next;
         }
-      }
     }
 
-    if (world_plan[check[0] * 81 + (check[1] + 1)] != 1 && check[1] + 1 <= 80)
+    if (visited[target] == 0)
     {
-      let piece = new Piece();
-      piece.x = check[1] + 1;
-      piece.z = check[0];
-      piece.g = g_g;
-      let rozdil_x = Math.abs(piece.x - cil_x);
-      let rozdil_z = Math.abs(piece.z - cil_z);
-      piece.h = rozdil_z + rozdil_x;
-      piece.f = piece.h + piece.g;
-      piece.come_from_z = check[0];
-      piece.come_from_x = check[1];
-      
-      pieces[`${piece.z},${piece.x}`] = piece;
-      ready.push([check[0],check[1] + 1,piece.f]);
+        return 0;
     }
 
-    if (world_plan[check[0] * 81 + (check[1] - 1)] != 1 && check[1] - 1 >= 0)
+    let path = [];
+    let current = target;
+
+    while (current != start)
     {
-      let piece = new Piece();
-      piece.x = check[1] - 1;
-      piece.z = check[0];
-      piece.g = g_g;
-      let rozdil_x = Math.abs(piece.x - cil_x);
-      let rozdil_z = Math.abs(piece.z - cil_z);
-      piece.h = rozdil_z + rozdil_x;
-      piece.f = piece.h + piece.g;
-      piece.come_from_z = check[0];
-      piece.come_from_x = check[1];
-      
-      pieces[`${piece.z},${piece.x}`] = piece;
-      ready.push([check[0],check[1] - 1,piece.f]);
+        const z = Math.floor(current / SIZE);
+        const x = current % SIZE;
+
+        path.push([z - 40, x - 40]);
+
+        current = parent[current];
     }
 
-    if (world_plan[(check[0] + 1) * 81 + check[1]] != 1 && check[0] + 1 <= 80)
-    {
-      let piece = new Piece();
-      piece.x = check[1];
-      piece.z = check[0] + 1;
-      piece.g = g_g;
-      let rozdil_x = Math.abs(piece.x - cil_x);
-      let rozdil_z = Math.abs(piece.z - cil_z);
-      piece.h = rozdil_z + rozdil_x;
-      piece.f = piece.h + piece.g;
-      piece.come_from_z = check[0];
-      piece.come_from_x = check[1];
-      
-      pieces[`${piece.z},${piece.x}`] = piece;
-      ready.push([check[0] + 1,check[1],piece.f]);
-    }
+    path.push([startZ - 40, startX - 40]);
+    path.reverse();
 
-    if (world_plan[(check[0] - 1) * 81 + check[1]] != 1 && check[0] - 1 >= 0)
-    {
-      let piece = new Piece();
-      piece.x = check[1];
-      piece.z = check[0] - 1;
-      piece.g = g_g;
-      let rozdil_x = Math.abs(piece.x - cil_x);
-      let rozdil_z = Math.abs(piece.z - cil_z);
-      piece.h = rozdil_z + rozdil_x;
-      piece.f = piece.h + piece.g;
-      piece.come_from_z = check[0];
-      piece.come_from_x = check[1];
-      
-      pieces[`${piece.z},${piece.x}`] = piece;
-      ready.push([check[0] - 1,check[1],piece.f]);
-    }
-    ready.sort((a, b) => a[2] - b[2]);
-  }
-  return 0;
-}/*}}}*/
-
+    return path;
+}
 function map_g_rooms(x, z)
 {  /*{{{*/
   let length_of_room = Math.floor(Math.random() * 11) + 10;
@@ -774,6 +831,8 @@ function map_g_rooms(x, z)
       {
         world_plan[(cube.z + 40) * 80 + cube.x + 40] = 1;
       }
+      cube.castShadow = true;
+      cube.receiveShadow = true;
     }
     else if (wall_y == 4)
     {
@@ -809,7 +868,9 @@ function map_g_rooms(x, z)
 
         door.open = 0;
 
-        world_plan[(door.z + 40) * 80 + door.x + 40] = 1;
+      world_plan[(door.z + 40) * 80 + door.x + 40] = 1;
+      door.castShadow = true;
+      door.receiveShadow = true;
     }
   }
   
@@ -875,8 +936,8 @@ function collision(x, z)
 {/*{{{*/
   for (let cube of Object.values(walls))
   {
-    let wall_x = cube.mesh.position.x;
-    let wall_z = cube.mesh.position.z;
+    let wall_x = cube.x;
+    let wall_z = cube.z;
 
     if (
       Math.abs(x - wall_x) < 0.8 &&
@@ -1070,7 +1131,6 @@ function am_I_movign()
     smer_pohybu.normalize();
 
     jdu_v_bok.set(-smer_pohybu.z, 0, smer_pohybu.x);
-    jdu_v_bok.normalize();
 
     let se_pohybuje = false;
 
@@ -1408,33 +1468,50 @@ function spawn_mods(mod)
     chicken.cil_x = chicken.x;
     chicken.y = 0;
 
-    const material = new THREE.MeshStandardMaterial({color: 0x991b1b});
+    const material_noha = new THREE.MeshStandardMaterial({
+      map: slepice_noha
+    });
+
+    const material_telo = new THREE.MeshStandardMaterial({
+      map: slepice_telo
+    });
+
+  const material_hlava = [
+    new THREE.MeshStandardMaterial({ map: slepice_hlava }),
+    new THREE.MeshStandardMaterial({ map: slepice_telo }), 
+    new THREE.MeshStandardMaterial({ map: slepice_telo }), 
+    new THREE.MeshStandardMaterial({ map: slepice_telo }),
+    new THREE.MeshStandardMaterial({ map: slepice_telo }),
+    new THREE.MeshStandardMaterial({ map: slepice_telo }) 
+  ];
 
     chicken.mesh = new THREE.Group();
 
-    function add_chicken_part(geometry)
+    function add_chicken_part(geometry, material)
     {
       const part = new THREE.Mesh(geometry, material);
+
       part.castShadow = true;
       part.receiveShadow = true;
+
       chicken.mesh.add(part);
     }
 
     const leg1 = new THREE.BoxGeometry(0.10,0.4,0.10);
     leg1.translate(0,0.2,-0.25);
-    add_chicken_part(leg1);
+    add_chicken_part(leg1, material_noha);
 
     const leg2 = new THREE.BoxGeometry(0.10,0.4,0.10);
     leg2.translate(0,0.2,0.25);
-    add_chicken_part(leg2);
+    add_chicken_part(leg2, material_noha);
 
     const body = new THREE.BoxGeometry(1.1,0.9,0.9);
     body.translate(0,0.82,0);
-    add_chicken_part(body);
+    add_chicken_part(body, material_telo);
 
     const head = new THREE.BoxGeometry(0.5,0.7,0.7);
     head.translate(0.6,1.27,0);
-    add_chicken_part(head);
+    add_chicken_part(head, material_hlava);
 
     chicken.mesh.position.set(
       chicken.x,
