@@ -152,6 +152,9 @@ class Mods
     this.z = 0;
     this.speed = 0.05;
     this.angel = 0;
+    this.wanted_angel = this.angel;
+    this.rotation_angel = 0;
+    this.angel_is_ok = 1;
     this.any_cil = 0;
     this.path = [];
     this.path_piece = 0;
@@ -162,7 +165,7 @@ class Mods
 
   move()
   {
-    if (this.any_cil == 0)
+    if (this.any_cil == 0 && this.angel_is_ok == 1)
     {
       this.any_cil = 1;
       this.path = shortesh_path(
@@ -180,12 +183,41 @@ class Mods
     }
     else
     {
+       
       const xd = this.next_cil_x - this.x;
       const zd = this.next_cil_z - this.z;
       const d = Math.sqrt(xd*xd + zd*zd);
-      this.angel = Math.atan2(xd, zd);
+      if (this.angel_is_ok == 1)
+      {
+        this.wanted_angel = Math.atan2(xd, zd);
+        this.rotation_angel = this.wanted_angel - this.angel;
+        
+        if (this.rotation_angel < -Math.PI) this.rotation_angel += Math.PI * 2;
+        if (this.rotation_angel > Math.PI) this.rotation_angel -= Math.PI * 2;
+      }
       this.mesh.rotation.y = this.angel - (Math.PI / 2);
-      if (d <= this.speed || d == 0)
+      
+      if (Math.abs(this.wanted_angel - this.angel) > 0.1)
+      {
+        this.angel += this.rotation_angel / 100;
+        this.angel = Math.atan2(Math.sin(this.angel), Math.cos(this.angel)); 
+
+        if (Math.abs(this.wanted_angel - this.angel) > 0.1)
+        {
+          this.angel_is_ok = 0;
+        }
+        else
+        {
+          this.angel = this.wanted_angel;
+          this.angel_is_ok = 1;
+        }
+      }
+      else
+      {
+        this.angel = this.wanted_angel;
+        this.angel_is_ok = 1;
+      }
+      if (this.angel_is_ok == 1 && d <= this.speed || d == 0)
       {
         this.x = this.next_cil_x;
         this.z = this.next_cil_z;
@@ -193,16 +225,33 @@ class Mods
         if (this.path_piece >= this.path.length)
         {
             this.any_cil = 0;
+            this.wanted_angel = this.angel;
             this.path = [];
             return;
         }
         this.next_cil_z = this.path[this.path_piece][0];
         this.next_cil_x = this.path[this.path_piece][1];
       }
-      else
+      else if (this.angel_is_ok == 1)
       {
-        this.x += xd/d * this.speed;
-        this.z += zd/d * this.speed;
+        const nove_x = this.x + xd/d * this.speed;
+        const nove_z = this.z + zd/d * this.speed;
+
+        const grid_x = Math.round(nove_x + 40);
+        const grid_z = Math.round(nove_z + 40);
+
+        const index = grid_z * 81 + grid_x;
+
+        if (world_plan[index] !== 1)
+        {
+            this.x = nove_x;
+            this.z = nove_z;
+        }
+        else
+        {
+            this.any_cil = 0;
+            this.path = [];
+        }
       }
       this.mesh.position.set(this.x, this.y, this.z);
     }
@@ -297,7 +346,6 @@ scene.add(floor);
 //calling important functions
 setInterval(am_I_movign,13);
 setInterval(onPointerDown,100);
-spawn_mods("chicken");
 
 document.addEventListener('click', () => { 
   if (in_game == 1 && buch == 0)/*{{{*/
@@ -326,14 +374,15 @@ document.addEventListener('click', () => {
   }
 });/*}}}*/
 
-//if (in_game == 0)
-//{/*{{{*/
-//  map_g_rooms(Math.floor(Math.random() * 41) - 20 , Math.floor(Math.random() * 41) - 20)
-//  map_g_rooms(Math.floor(Math.random() * 41) - 20 , Math.floor(Math.random() * 41) - 20)
-//  map_g_rooms(Math.floor(Math.random() * 41) - 20 , Math.floor(Math.random() * 41) - 20)
-//  map_g_rooms(Math.floor(Math.random() * 41) - 20 , Math.floor(Math.random() * 41) - 20)
-//  map_g_rooms(Math.floor(Math.random() * 41) - 20 , Math.floor(Math.random() * 41) - 20)
-//}/*}}}*/
+if (in_game == 0)
+{/*{{{*/
+  map_g_rooms(Math.floor(Math.random() * 41) - 20 , Math.floor(Math.random() * 41) - 20)
+  map_g_rooms(Math.floor(Math.random() * 41) - 20 , Math.floor(Math.random() * 41) - 20)
+  map_g_rooms(Math.floor(Math.random() * 41) - 20 , Math.floor(Math.random() * 41) - 20)
+  map_g_rooms(Math.floor(Math.random() * 41) - 20 , Math.floor(Math.random() * 41) - 20)
+  map_g_rooms(Math.floor(Math.random() * 41) - 20 , Math.floor(Math.random() * 41) - 20)
+  spawn_mods("chicken");
+}/*}}}*/
 
 document.addEventListener('click', () => { 
   mouse_control.lock();/*{{{*/
@@ -476,7 +525,7 @@ function animate()
                 continue;
             }
 
-            let index = (next_z + 40) * 80 + (next_x + 40);
+            let index = (next_z + 40) * 81 + (next_x + 40);
 
             if (world_plan[index] !== 1)
             {
@@ -529,54 +578,10 @@ function update_HP(noveHP)
     last_HP = aktualniHP;
 }/*}}}*/
 
-function made_walls()
-{/*{{{*/
-  for (let cell_x = -40; cell_x <= 40; cell_x += 1)
-  {
-    for (let cell_z = -40; cell_z <= 40; cell_z += 1)
-    {
-      const wall_YES_OR_NO = Math.round(Math.random() * 10);
-      if (cell_x > -6 && cell_x  < 6)
-      {
-        if (cell_z > -6 && cell_z < 6)
-        {
-          continue;
-        }
-      }
-      if (wall_YES_OR_NO == 3)
-      {
-        let cube = new Walls();
-        cube.x = cell_x;
-        cube.z = cell_z; 
-        cube.geometry = new THREE.BoxGeometry(1,1,1);
-        cube.y = 0.5
-        cube.mesh =  new THREE.Mesh(cube.geometry, cube_material);
-        cube.mesh.position.set(cube.x, cube.y, cube.z);
-        scene.add(cube.mesh);
-      }
-    }
-  }
-  for (let cube of Object.values(walls))
-  {
-    world_plan[(cube.z + 40)*80 + cube.x + 40] = 1;
-  }
-  for (let i = 0;i < 100;i++)
-  {
-    if (shortest_path(0,0,30,20))
-    {
-      console.log("1");
-    }
-    else
-    {
-      console.log("0");
-    }
-  }
-}/*}}}*/
-
 function any_path(start_x,start_z,target_x,target_z)
 {/*{{{*/
   let checked = [];
-  checked[(start_z + 40) * 80 + start_x + 40] = 1;
+  checked[(start_z + 40) * 81 + start_x + 40] = 1;
 
   let stack = [[start_z + 40,start_x + 40]];
   let finded = 0;
@@ -593,7 +598,7 @@ function any_path(start_x,start_z,target_x,target_z)
 
     if (check[1] - 1 > -1)
     {
-      const pos = check[0]*80 + (check[1] - 1);
+      const pos = check[0] * 81 + (check[1] - 1);
 
       if (checked[pos] != 1 && world_plan[pos] != 1)
       {
@@ -602,7 +607,7 @@ function any_path(start_x,start_z,target_x,target_z)
     }
     if (check[1] + 1 < 81)
     {
-      const pos = check[0]*80 + (check[1] + 1);
+      const pos = check[0] * 81 + (check[1] + 1);
 
       if (checked[pos] != 1 && world_plan[pos] != 1)
       {
@@ -611,7 +616,7 @@ function any_path(start_x,start_z,target_x,target_z)
     }
     if (check[0] - 1 > -1)
     {
-      const pos = (check[0] - 1)*80 + check[1];
+      const pos = (check[0] - 1) * 81 + check[1];
 
       if (checked[pos] != 1 && world_plan[pos] != 1)
       {
@@ -620,7 +625,7 @@ function any_path(start_x,start_z,target_x,target_z)
     }
     if (check[0] + 1 < 81)
     {
-      const pos = (check[0] + 1)*80 + check[1];
+      const pos = (check[0] + 1) * 81 + check[1];
 
       if (checked[pos] != 1 && world_plan[pos] != 1)
       {
@@ -628,14 +633,14 @@ function any_path(start_x,start_z,target_x,target_z)
       }
     }
 
-    checked[check[0] * 80 + check[1]] = 1;
+    checked[check[0] * 81 + check[1]] = 1;
   }
 
   return finded;
 }/*}}}*/
 
 function shortesh_path(start_x, start_z, target_x, target_z)
-{
+{/*{{{*/
     const SIZE = 81;
     const CELLS = SIZE * SIZE;
 
@@ -730,14 +735,15 @@ function shortesh_path(start_x, start_z, target_x, target_z)
     path.reverse();
 
     return path;
-}
+}/*}}}*/
+
 function map_g_rooms(x, z)
 {  /*{{{*/
   let length_of_room = Math.floor(Math.random() * 11) + 10;
   let width_of_room = Math.floor(Math.random() * 11) + 10;
   let attemps = 0;
 
-  if(world_plan[(z + 40) * 80 + x + 40] == 1)
+  if(world_plan[(z + 40) * 81 + x + 40] == 1)
   {
     return;
   }
@@ -764,8 +770,8 @@ function map_g_rooms(x, z)
     
     for (let cx = x; cx <= x + length_of_room; cx++)
     {
-      if (world_plan[(z + 40) * 80 + (cx + 40)] == 1 || 
-          world_plan[(z + width_of_room + 40) * 80 + (cx + 40)] == 1)
+      if (world_plan[(z + 40) * 81 + (cx + 40)] == 1 || 
+          world_plan[(z + width_of_room + 40) * 81 + (cx + 40)] == 1)
       {
         kolize = 1;
         break;
@@ -775,8 +781,8 @@ function map_g_rooms(x, z)
     if (kolize == 0) {
       for (let cz = z; cz <= z + width_of_room; cz++)
       {
-        if (world_plan[(cz + 40) * 80 + (x + 40)] == 1 || 
-            world_plan[(cz + 40) * 80 + (x + length_of_room + 40)] == 1)
+        if (world_plan[(cz + 40) * 81 + (x + 40)] == 1 || 
+            world_plan[(cz + 40) * 81 + (x + length_of_room + 40)] == 1)
         {
           kolize = 1;
           break;
@@ -829,7 +835,7 @@ function map_g_rooms(x, z)
 
       if (wall_y != 5) 
       {
-        world_plan[(cube.z + 40) * 80 + cube.x + 40] = 1;
+        world_plan[(cube.z + 40) * 81 + cube.x + 40] = 1;
       }
       cube.castShadow = true;
       cube.receiveShadow = true;
@@ -868,7 +874,7 @@ function map_g_rooms(x, z)
 
         door.open = 0;
 
-      world_plan[(door.z + 40) * 80 + door.x + 40] = 1;
+      world_plan[(door.z + 40) * 81 + door.x + 40] = 1;
       door.castShadow = true;
       door.receiveShadow = true;
     }
@@ -1003,11 +1009,14 @@ function move_player(dx, dz)
   }
 }/*}}}*/
 
+//window resize
+/*{{{*/
 window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
 });
+/*}}}*/
 
 function am_I_movign()
 {/*{{{*/
@@ -1454,7 +1463,7 @@ function spawn_mods(mod)
       chicken.x = Math.floor(Math.random() * 79) - 39;
       chicken.z = Math.floor(Math.random() * 79) - 39;
 
-      if (world_plan[(chicken.z + 40) * 80 + chicken.x + 40] == 1)
+      if (world_plan[(chicken.z + 40) * 81 + chicken.x + 40] == 1)
       {
         kolize = 1;
       }
