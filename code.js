@@ -3,6 +3,11 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { PointerLockControls } from './sources/addons/PointerLock.js';
 import * as BufferGeometryUtils from './sources/utils/BufferGeometryUtils.js';
 
+const size_of_map = 80;
+const half_of_map = size_of_map / 2;
+const border_min = (size_of_map / 2) - size_of_map;
+const border_max = size_of_map / 2;
+
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace; 
@@ -41,7 +46,7 @@ const slepice_hlava = texture_loader.load('./sources/images/head_chicken.png');
 
 floor_texture.wrapS = THREE.RepeatWrapping;
 floor_texture.wrapT = THREE.RepeatWrapping;
-floor_texture.repeat.set(80, 80); 
+floor_texture.repeat.set(size_of_map + (Math.round(Math.random() * 7) - 3), size_of_map + (Math.round(Math.random() * 7) - 3)); 
 
 const door_block_material = new THREE.MeshStandardMaterial({ map: door_wood_house_wall_texture });
 const door_block_down_material = new THREE.MeshStandardMaterial({ map: down_block_door_texture });
@@ -170,7 +175,7 @@ class Mods
       this.any_cil = 1;
       this.path = shortesh_path(
         this.x, this.z,
-        this.cil_x, this.cil_z
+        this.cil_x,this.cil_z
       );
 
       if (this.path === 0) {
@@ -182,8 +187,7 @@ class Mods
       this.next_cil_x = this.path[this.path_piece][1];
     }
     else
-    {
-       
+    { 
       const xd = this.next_cil_x - this.x;
       const zd = this.next_cil_z - this.z;
       const d = Math.sqrt(xd*xd + zd*zd);
@@ -240,7 +244,7 @@ class Mods
         const grid_x = Math.round(nove_x + 40);
         const grid_z = Math.round(nove_z + 40);
 
-        const index = grid_z * 81 + grid_x;
+        const index = grid_z * size_of_map + grid_x;
 
         if (world_plan[index] !== 1)
         {
@@ -279,7 +283,7 @@ class Piece
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
 const mouse_control = new PointerLockControls(camera, document.body);
-const floor_geometry = new THREE.PlaneGeometry(80.5, 80.5, 1, 1);
+const floor_geometry = new THREE.PlaneGeometry(size_of_map, size_of_map, 1, 1);
 const floor = new THREE.Mesh(floor_geometry, floor_material);
 const cube_geometry = new THREE.BoxGeometry(1,1,1);
 const cube_material = new THREE.MeshStandardMaterial({ map: wood_house_wall_texture,transparent: true});
@@ -376,11 +380,11 @@ document.addEventListener('click', () => {
 
 if (in_game == 0)
 {/*{{{*/
-  map_g_rooms(Math.floor(Math.random() * 41) - 20 , Math.floor(Math.random() * 41) - 20)
-  map_g_rooms(Math.floor(Math.random() * 41) - 20 , Math.floor(Math.random() * 41) - 20)
-  map_g_rooms(Math.floor(Math.random() * 41) - 20 , Math.floor(Math.random() * 41) - 20)
-  map_g_rooms(Math.floor(Math.random() * 41) - 20 , Math.floor(Math.random() * 41) - 20)
-  map_g_rooms(Math.floor(Math.random() * 41) - 20 , Math.floor(Math.random() * 41) - 20)
+  let number_of_rooms = Math.floor(Math.random() * 7) + 4;
+  for (let i = 0;i < number_of_rooms;i++)
+  {
+    map_g_rooms(Math.floor(Math.random() * half_of_map + 1) - half_of_map / 2, Math.floor(Math.random() *  half_of_map + 1) - half_of_map / 2)
+  }
   spawn_mods("chicken");
 }/*}}}*/
 
@@ -519,13 +523,13 @@ function animate()
             let next_x = mob.x + plus_x;
             let next_z = mob.z + plus_z;
 
-            if (next_x < -40 || next_x > 40 ||
-                next_z < -40 || next_z > 40)
+            if (next_x < border_min|| next_x > border_max ||
+                next_z < border_min || next_z > border_max)
             {
                 continue;
             }
 
-            let index = (next_z + 40) * 81 + (next_x + 40);
+            let index = (next_z + half_of_map) * size_of_map + (next_x + half_of_map);
 
             if (world_plan[index] !== 1)
             {
@@ -581,16 +585,16 @@ function update_HP(noveHP)
 function any_path(start_x,start_z,target_x,target_z)
 {/*{{{*/
   let checked = [];
-  checked[(start_z + 40) * 81 + start_x + 40] = 1;
+  checked[(start_z + half_of_map) * size_of_map + start_x + half_of_map] = 1;
 
-  let stack = [[start_z + 40,start_x + 40]];
+  let stack = [[start_z + half_of_map,start_x + half_of_map]];
   let finded = 0;
 
   while (stack.length)
   {
     let check = stack.pop();
 
-    if (check[0] == target_z + 40 && check[1] == target_x + 40)
+    if (check[0] == target_z + half_of_map && check[1] == target_x + half_of_map)
     {
       finded = 1;
       break;
@@ -598,16 +602,16 @@ function any_path(start_x,start_z,target_x,target_z)
 
     if (check[1] - 1 > -1)
     {
-      const pos = check[0] * 81 + (check[1] - 1);
+      const pos = check[0] * size_of_map + (check[1] - 1);
 
       if (checked[pos] != 1 && world_plan[pos] != 1)
       {
         stack.push([check[0],check[1] - 1]);
       }
     }
-    if (check[1] + 1 < 81)
+    if (check[1] + 1 < size_of_map + 1)
     {
-      const pos = check[0] * 81 + (check[1] + 1);
+      const pos = check[0] * size_of_map + (check[1] + 1);
 
       if (checked[pos] != 1 && world_plan[pos] != 1)
       {
@@ -616,16 +620,16 @@ function any_path(start_x,start_z,target_x,target_z)
     }
     if (check[0] - 1 > -1)
     {
-      const pos = (check[0] - 1) * 81 + check[1];
+      const pos = (check[0] - 1) * size_of_map + check[1];
 
       if (checked[pos] != 1 && world_plan[pos] != 1)
       {
         stack.push([check[0] - 1,check[1]]);
       }
     }
-    if (check[0] + 1 < 81)
+    if (check[0] + 1 < size_of_map + 1)
     {
-      const pos = (check[0] + 1) * 81 + check[1];
+      const pos = (check[0] + 1) * size_of_map + check[1];
 
       if (checked[pos] != 1 && world_plan[pos] != 1)
       {
@@ -633,7 +637,7 @@ function any_path(start_x,start_z,target_x,target_z)
       }
     }
 
-    checked[check[0] * 81 + check[1]] = 1;
+    checked[check[0] * size_of_map + check[1]] = 1;
   }
 
   return finded;
@@ -641,14 +645,13 @@ function any_path(start_x,start_z,target_x,target_z)
 
 function shortesh_path(start_x, start_z, target_x, target_z)
 {/*{{{*/
-    const SIZE = 81;
+    const SIZE = size_of_map;
     const CELLS = SIZE * SIZE;
 
-    const startX = Math.round(start_x + 40);
-    const startZ = Math.round(start_z + 40);
-    const targetX = Math.round(target_x + 40);
-    const targetZ = Math.round(target_z + 40);
-
+    const startX = Math.round(start_x + half_of_map);
+    const startZ = Math.round(start_z + half_of_map);
+    const targetX = Math.round(target_x + half_of_map);
+    const targetZ = Math.round(target_z + half_of_map);
     if (
         startX < 0 || startX >= SIZE ||
         startZ < 0 || startZ >= SIZE ||
@@ -698,9 +701,9 @@ function shortesh_path(start_x, start_z, target_x, target_z)
         {
             const next = current + dir;
 
-            if (dir == 1 && x == 80) continue;
+            if (dir == 1 && x == SIZE - 1) continue;
             if (dir == -1 && x == 0) continue;
-            if (dir == SIZE && z == 80) continue;
+            if (dir == SIZE && z == SIZE - 1) continue;
             if (dir == -SIZE && z == 0) continue;
 
             if (visited[next] == 1) continue;
@@ -726,12 +729,12 @@ function shortesh_path(start_x, start_z, target_x, target_z)
         const z = Math.floor(current / SIZE);
         const x = current % SIZE;
 
-        path.push([z - 40, x - 40]);
+        path.push([z - half_of_map, x - half_of_map]);
 
         current = parent[current];
     }
 
-    path.push([startZ - 40, startX - 40]);
+    path.push([startZ - half_of_map, startX - half_of_map]);
     path.reverse();
 
     return path;
@@ -739,11 +742,11 @@ function shortesh_path(start_x, start_z, target_x, target_z)
 
 function map_g_rooms(x, z)
 {  /*{{{*/
-  let length_of_room = Math.floor(Math.random() * 11) + 10;
-  let width_of_room = Math.floor(Math.random() * 11) + 10;
+  let length_of_room = Math.floor(Math.random() * half_of_map / 4 + 1) + 10;
+  let width_of_room = Math.floor(Math.random() * half_of_map / 4 + 1) + 10;
   let attemps = 0;
 
-  if(world_plan[(z + 40) * 81 + x + 40] == 1)
+  if(world_plan[(z + half_of_map) * size_of_map + x + half_of_map] == 1)
   {
     return;
   }
@@ -756,12 +759,12 @@ function map_g_rooms(x, z)
       return;
     }
 
-    if (x + length_of_room >= 40 || z + width_of_room >= 40) 
+    if (x + length_of_room >= half_of_map || z + width_of_room >= half_of_map) 
     {
       x = Math.floor(Math.random() * 41) - 20;
       z = Math.floor(Math.random() * 41) - 20;
-      length_of_room = Math.floor(Math.random() * 11) + 10;
-      width_of_room = Math.floor(Math.random() * 11) + 10;
+      length_of_room = Math.floor(Math.random() * half_of_map / 4 + 1) + 10;
+      width_of_room = Math.floor(Math.random() * half_of_map / 4 + 1) + 10;
       attemps++;
       continue;
     }
@@ -770,8 +773,8 @@ function map_g_rooms(x, z)
     
     for (let cx = x; cx <= x + length_of_room; cx++)
     {
-      if (world_plan[(z + 40) * 81 + (cx + 40)] == 1 || 
-          world_plan[(z + width_of_room + 40) * 81 + (cx + 40)] == 1)
+      if (world_plan[(z + half_of_map) * size_of_map + (cx + half_of_map)] == 1 || 
+          world_plan[(z + width_of_room + half_of_map) * size_of_map + (cx + half_of_map)] == 1)
       {
         kolize = 1;
         break;
@@ -781,8 +784,8 @@ function map_g_rooms(x, z)
     if (kolize == 0) {
       for (let cz = z; cz <= z + width_of_room; cz++)
       {
-        if (world_plan[(cz + 40) * 81 + (x + 40)] == 1 || 
-            world_plan[(cz + 40) * 81 + (x + length_of_room + 40)] == 1)
+        if (world_plan[(cz + half_of_map) * size_of_map + (x + half_of_map)] == 1 || 
+            world_plan[(cz + half_of_map) * size_of_map + (x + length_of_room + half_of_map)] == 1)
         {
           kolize = 1;
           break;
@@ -792,10 +795,10 @@ function map_g_rooms(x, z)
 
     if (kolize == 1)
     {
-      x = Math.floor(Math.random() * 41) - 20;
-      z = Math.floor(Math.random() * 41) - 20;
-      length_of_room = Math.floor(Math.random() * 11) + 10;
-      width_of_room = Math.floor(Math.random() * 11) + 10;
+      x = Math.floor(Math.random() * half_of_map + 1) - half_of_map;
+      z = Math.floor(Math.random() * half_of_map + 1) - half_of_map;
+      length_of_room = Math.floor(Math.random() * half_of_map / 4 + 1) + 10;
+      width_of_room = Math.floor(Math.random() * half_of_map / 4 + 1) + 10;
       attemps++;
     }
     else
@@ -835,7 +838,7 @@ function map_g_rooms(x, z)
 
       if (wall_y != 5) 
       {
-        world_plan[(cube.z + 40) * 81 + cube.x + 40] = 1;
+        world_plan[(cube.z + half_of_map) * size_of_map + cube.x + half_of_map] = 1;
       }
       cube.castShadow = true;
       cube.receiveShadow = true;
@@ -874,7 +877,7 @@ function map_g_rooms(x, z)
 
         door.open = 0;
 
-      world_plan[(door.z + 40) * 81 + door.x + 40] = 1;
+      world_plan[(door.z + half_of_map) * size_of_map + door.x + half_of_map] = 1;
       door.castShadow = true;
       door.receiveShadow = true;
     }
@@ -1460,10 +1463,10 @@ function spawn_mods(mod)
         return;
       }
 
-      chicken.x = Math.floor(Math.random() * 79) - 39;
-      chicken.z = Math.floor(Math.random() * 79) - 39;
+      chicken.x = Math.floor(Math.random() * size_of_map - 1) - half_of_map - 1;
+      chicken.z = Math.floor(Math.random() * size_of_map - 1) - half_of_map - 1;
 
-      if (world_plan[(chicken.z + 40) * 81 + chicken.x + 40] == 1)
+      if (world_plan[(chicken.z + half_of_map) * size_of_map + chicken.x + half_of_map] == 1)
       {
         kolize = 1;
       }
