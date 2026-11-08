@@ -44,6 +44,10 @@ const door_uzky_blok = texture_loader.load('./sources/images/wooden_door_other_s
 const slepice_noha = texture_loader.load('./sources/images/chicken_leg.png');
 const slepice_telo = texture_loader.load('./sources/images/body_chicken.png');
 const slepice_hlava = texture_loader.load('./sources/images/head_chicken.png');
+const villager_arm = texture_loader.load('./sources/images/villager_arm.png');
+const villager_body = texture_loader.load('./sources/images/villager_body.png');
+const villager_neck = texture_loader.load('./sources/images/villager_neck.png');
+const villager_leg = texture_loader.load('./sources/images/villager_leg.png');
 
 floor_texture.wrapS = THREE.RepeatWrapping;
 floor_texture.wrapT = THREE.RepeatWrapping;
@@ -55,6 +59,7 @@ const roof_up_block_mat = new THREE.MeshStandardMaterial({map: roof_up_block});
 const roof_down_block_mat = new THREE.MeshStandardMaterial({map: roof_down_block});
 const door_material = new THREE.MeshStandardMaterial({map: door_blok});
 const door_uzky_material = new THREE.MeshStandardMaterial({map: door_uzky_blok});
+const wood_wall_material = new THREE.MeshStandardMaterial({ map: wood_house_wall_texture});
 
 const directionalLight = new THREE.DirectionalLight(0xffffff, 1.2);
 directionalLight.position.set(5, 10, 7);
@@ -83,7 +88,6 @@ camera.position.set(-10, 2, -10);
 
 const floor_material = new THREE.MeshStandardMaterial({ 
   map: floor_texture,
-  transparent: true
 });
 
 const door_block_materialy = [
@@ -196,7 +200,16 @@ class Mods
       const d = Math.sqrt(xd*xd + zd*zd);
       if (this.angel_is_ok == 1)
       {
+
         this.wanted_angel = Math.atan2(xd, zd);
+
+        this.wanted_angel = Math.atan2(xd, zd);
+
+        if (this.type == "villager")
+        {
+            this.wanted_angel -= Math.PI / 2;
+        }
+
         this.rotation_angel = this.wanted_angel - this.angel;
         
         if (this.rotation_angel < -Math.PI) this.rotation_angel += Math.PI * 2;
@@ -289,7 +302,6 @@ const mouse_control = new PointerLockControls(camera, document.body);
 const floor_geometry = new THREE.PlaneGeometry(size_of_map, size_of_map, 1, 1);
 const floor = new THREE.Mesh(floor_geometry, floor_material);
 const cube_geometry = new THREE.BoxGeometry(1,1,1);
-const wood_wall_material = new THREE.MeshStandardMaterial({ map: wood_house_wall_texture,transparent: true});
 const arm_geometry = new THREE.BoxGeometry(0.2, 0.2, 1.5);
 const arm_material = new THREE.MeshStandardMaterial({ color: 0xffdbac});
 const arm_mesh = new THREE.Mesh(arm_geometry, arm_material);
@@ -392,6 +404,7 @@ if (in_game == 0)
     map_g_rooms(Math.floor(Math.random() * half_of_map + 1) - half_of_map / 2, Math.floor(Math.random() *  half_of_map + 1) - half_of_map / 2)
   }
   spawn_mods("chicken");
+  spawn_mods("villager");
 }/*}}}*/
 
 document.addEventListener('click', () => { 
@@ -559,6 +572,16 @@ function animate()
   
   frame_per_second += 1;
   renderer.render(scene, camera);
+
+  if (frame_per_second % 20 === 0)
+  {
+      console.log(
+          "Draw calls:", renderer.info.render.calls,
+          "Triangles:", renderer.info.render.triangles,
+          "Geometries:", renderer.info.memory.geometries
+      );
+  }
+
 }/*}}}*/
 
 animate();
@@ -753,6 +776,10 @@ function map_g_rooms(x, z)
   let length_of_room = Math.floor(Math.random() * half_of_map / 4 + 1) + 10;
   let width_of_room = Math.floor(Math.random() * half_of_map / 4 + 1) + 10;
   let attemps = 0;
+  let wall_geometries = [];
+  let roof_geometries = [];
+  let dobl_geometries = [];
+  let house = new THREE.Group();
 
   if(world_plan[(z + half_of_map) * size_of_map + x + half_of_map] == 1)
   {
@@ -836,8 +863,8 @@ function map_g_rooms(x, z)
         cube.geometry = new THREE.BoxGeometry(1, 1.6, 1);
         cube.geometry.translate(wall_x,3.2,wall_z)
         cube.mesh = new THREE.Group(cube.geometry,door_block_materialy);
-        create_wall_cube(cube.x, cube.z, 4,door_axis);
         add_wall_part(cube.geometry,door_block_materialy);
+        create_wall_cube(cube.x, cube.z, 4,door_axis);
       }
       else if (wall_y == 5)
       {
@@ -892,15 +919,20 @@ function map_g_rooms(x, z)
   }
   function add_wall_part(geometry, material)
   {
-    const part = new THREE.Mesh(geometry, material);
-
-    part.castShadow = false;
-    part.receiveShadow = false;
-
-    house.add(part);
+    if (material === wood_wall_material)
+    {
+      wall_geometries.push(geometry)
+    }
+    else if (material === roof_block_materialy)
+    {
+      roof_geometries.push(geometry);
+    }
+    else if (material === door_block_materialy)
+    {
+      dobl_geometries.push(geometry);
+    }
   }
 
-  let house = new THREE.Group();
   let dvere_x = Math.floor(Math.random() * (length_of_room - 1)) + 1;
   let dvere_z = Math.floor(Math.random() * (width_of_room - 1)) + 1;
   let dvere_kde_x = Math.round(Math.random());
@@ -957,7 +989,113 @@ function map_g_rooms(x, z)
       create_wall_cube(x + i, z + j, 5);
     }
   }
-  
+  if (wall_geometries.length)
+  {
+      const merged_geometry = BufferGeometryUtils.mergeGeometries(
+          wall_geometries,
+          false
+      );
+
+      const wall_mesh = new THREE.Mesh(
+          merged_geometry,
+          wood_wall_material
+      );
+      house.add(wall_mesh);
+  }
+  if (roof_geometries.length)
+  {
+      let roof_up_geometries = [];
+      let roof_down_geometries = [];
+
+      for (const geometry of roof_geometries)
+      {
+          const non_indexed = geometry.toNonIndexed();
+
+          for (let i = 0; i < non_indexed.groups.length; i++)
+          {
+              const group = non_indexed.groups[i];
+
+              let face_geometry = new THREE.BufferGeometry();
+
+              for (const name in non_indexed.attributes)
+              {
+                  const attribute = non_indexed.attributes[name];
+
+                  const values = attribute.array.slice(
+                      group.start * attribute.itemSize,
+                      (group.start + group.count) * attribute.itemSize
+                  );
+
+                  face_geometry.setAttribute(
+                      name,
+                      new THREE.BufferAttribute(
+                          values,
+                          attribute.itemSize
+                      )
+                  );
+              }
+
+              if (i == 3)
+              {
+                  roof_down_geometries.push(face_geometry);
+              }
+              else
+              {
+                  roof_up_geometries.push(face_geometry);
+              }
+          }
+
+          non_indexed.dispose();
+      }
+
+      const merged_up = BufferGeometryUtils.mergeGeometries(
+          roof_up_geometries,
+          false
+      );
+
+      const merged_down = BufferGeometryUtils.mergeGeometries(
+          roof_down_geometries,
+          false
+      );
+
+      if (merged_up)
+      {
+          house.add(
+              new THREE.Mesh(
+                  merged_up,
+                  roof_up_block_mat
+              )
+          );
+      }
+
+      if (merged_down)
+      {
+          house.add(
+              new THREE.Mesh(
+                  merged_down,
+                  roof_down_block_mat
+              )
+          );
+      }
+
+      for (const geometry of roof_geometries)
+      {
+          geometry.dispose();
+      }
+  }
+  if (dobl_geometries.length)
+  {
+    const merged_geometry3 = BufferGeometryUtils.mergeGeometries(
+          dobl_geometries,
+          true
+      );
+
+      const dobl_mesh = new THREE.Mesh(
+          merged_geometry3,
+          door_block_materialy
+      );
+      house.add(dobl_mesh);
+  }
   scene.add(house);
 }/*}}}*/
 
@@ -1464,9 +1602,9 @@ window.addEventListener('contextmenu', (event) => {
     event.preventDefault();
 });/*}}}*/
 
-function spawn_mods(mod)
+function spawn_mods(mob)
 {/*{{{*/
-  if (mod == "chicken")
+  if (mob == "chicken")
   {
     let vse_ok = 0;
     let attemps = 0;
@@ -1483,8 +1621,8 @@ function spawn_mods(mod)
         return;
       }
 
-      chicken.x = Math.floor(Math.random() * size_of_map - 1) - half_of_map - 1;
-      chicken.z = Math.floor(Math.random() * size_of_map - 1) - half_of_map - 1;
+      chicken.x = Math.floor(Math.random() * size_of_map) - half_of_map;
+      chicken.z = Math.floor(Math.random() * size_of_map) - half_of_map;
 
       if (world_plan[(chicken.z + half_of_map) * size_of_map + chicken.x + half_of_map] == 1)
       {
@@ -1523,8 +1661,8 @@ function spawn_mods(mod)
     {
       const part = new THREE.Mesh(geometry, material);
 
-      part.castShadow = true;
-      part.receiveShadow = true;
+      part.castShadow = false;
+      part.receiveShadow = false;
 
       chicken.mesh.add(part);
     }
@@ -1555,6 +1693,113 @@ function spawn_mods(mod)
 
     scene.add(chicken.mesh);
     chicken.type = "chicken";
+  }
+  else if (mob == "villager")
+  {
+    let vse_ok = 0;
+    let attemps = 0;
+    let villager = new Mods();
+
+    while (vse_ok == 0)
+    {
+      let kolize = 0;
+      attemps++;
+
+      if (attemps >= 100)
+      {
+        delete mods[villager.id];
+        return;
+      }
+
+      villager.x = Math.floor(Math.random() * size_of_map) - half_of_map;
+      villager.z = Math.floor(Math.random() * size_of_map) - half_of_map;
+
+      if (world_plan[(villager.z + half_of_map) * size_of_map + villager.x + half_of_map] == 1)
+      {
+        kolize = 1;
+      }
+
+      if (kolize == 0)
+      {
+        vse_ok = 1;
+      }
+    }
+    
+    villager.mesh = new THREE.Group();
+    
+    villager.cil_y = villager.y;
+    villager.cil_x = villager.x;
+    villager.y = 0;
+
+    const arm_material = new THREE.MeshStandardMaterial({
+        map: villager_arm
+    });
+
+    const neck_material = new THREE.MeshStandardMaterial({
+        map: villager_neck
+    });
+
+    const body_material = new THREE.MeshStandardMaterial({
+        map: villager_body
+    });
+
+    const materialnik = new THREE.MeshStandardMaterial({
+        color: 0x00ff00
+    });
+
+    const leg_material = new THREE.MeshStandardMaterial({
+        map: villager_leg
+    });
+
+    function add_villager_part(geometry, material)
+    {
+      const part = new THREE.Mesh(geometry, material);
+
+      part.castShadow = false;
+      part.receiveShadow = false;
+
+      villager.mesh.add(part);
+    }
+
+    const leg1 = new THREE.BoxGeometry(0.45,1.2,0.4);
+    leg1.translate(-0.3,0.7,0);
+    add_villager_part(leg1, leg_material);
+
+    const leg2 = new THREE.BoxGeometry(0.45,1.2,0.4);
+    leg2.translate(0.3,0.7,0);
+    add_villager_part(leg2, leg_material);
+
+    const body = new THREE.BoxGeometry(1.3,1.5,0.8);
+    body.translate(0,1.6,0);
+    add_villager_part(body, body_material);
+
+    const arm1 = new THREE.BoxGeometry(0.5,1.2,0.3);
+    arm1.translate(-0.7,1.6,0);
+    add_villager_part(arm1, arm_material);
+
+    const arm2 = new THREE.BoxGeometry(0.5,1.2,0.3);
+    arm2.translate(0.7,1.6,0);
+    add_villager_part(arm2, arm_material);
+
+    const neck = new THREE.BoxGeometry(0.5,1,0.4);
+    neck.translate(0,2.1,0);
+    add_villager_part(neck, neck_material);
+
+    const head = new THREE.BoxGeometry(0.9,0.9,0.9);
+    head.translate(0,3,0);
+    add_villager_part(head, materialnik);
+ 
+    villager.mesh.position.set(
+      villager.x,
+      villager.y,
+      villager.z
+    );
+
+    villager.mesh.frustumCulled = true;
+
+    scene.add(villager.mesh);
+    villager.type = "villager"; 
+
   }
 }/*}}}*/
 
