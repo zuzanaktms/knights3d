@@ -1,4 +1,3 @@
-:e index.html
 html {
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -16,38 +15,31 @@ html, body {
 }
 
 #game-container {
-  position:relative;
-  width: 100vw;
-  height: 100vh;
-  display: block;
-}
-
-
-#hp-container {
-    position: absolute;
-    top: 20px;
-    left: 20px;
-    z-index: 100; 
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    color: white;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+  position: relative;
+  display: inline-block;
 }
 
 #hp-label {
-    font-size: 18px;
-    font-weight: bold;
-    margin-bottom: 5px;
-    color: white;
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 10;
 }
 
 #hp-bar-bg {
-    width: 200px;
-    height: 20px;
-    background-color: rgba(50, 50, 50, 0.7);
-    border: 2px solid #fff;
-    border-radius: 5px;
-    overflow: hidden;
-    box-shadow: 0 0 10px rgba(0,0,0,0.5);
+  position: absolute;
+  top: 35px; 
+  left: 10px;
+  z-index: 10;
+}
+
+#FPS_show {
+  position: absolute;
+  top: 10px;      
+  right: 10px;
+  margin: 0;    
+  font-size: 16px; 
+  z-index: 10;
 }
 
 #hp-bar-fill {
@@ -72,3 +64,4 @@ html, body {
   pointer-events: none;     
   z-index: 9999; 
 }
+

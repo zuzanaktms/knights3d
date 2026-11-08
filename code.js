@@ -7,6 +7,7 @@ const size_of_map = 80;
 const half_of_map = size_of_map / 2;
 const border_min = (size_of_map / 2) - size_of_map;
 const border_max = size_of_map / 2;
+const fpsNadpis = document.getElementById("FPS_show");
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -58,8 +59,8 @@ const door_uzky_material = new THREE.MeshStandardMaterial({map: door_uzky_blok})
 const directionalLight = new THREE.DirectionalLight(0xffffff, 1.2);
 directionalLight.position.set(5, 10, 7);
 
-directionalLight.shadow.mapSize.width = 2048;
-directionalLight.shadow.mapSize.height = 2048;
+directionalLight.shadow.mapSize.width = 1024;
+directionalLight.shadow.mapSize.height = 1024;
 
 directionalLight.shadow.camera.left = -45;
 directionalLight.shadow.camera.right = 45;
@@ -74,6 +75,8 @@ directionalLight.shadow.bias = -0.0005;
 directionalLight.shadow.camera.updateProjectionMatrix();
 
 scene.add(directionalLight);
+
+renderer.shadowMap.enabled = false;
 
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 camera.position.set(-10, 2, -10);
@@ -286,7 +289,7 @@ const mouse_control = new PointerLockControls(camera, document.body);
 const floor_geometry = new THREE.PlaneGeometry(size_of_map, size_of_map, 1, 1);
 const floor = new THREE.Mesh(floor_geometry, floor_material);
 const cube_geometry = new THREE.BoxGeometry(1,1,1);
-const cube_material = new THREE.MeshStandardMaterial({ map: wood_house_wall_texture,transparent: true});
+const wood_wall_material = new THREE.MeshStandardMaterial({ map: wood_house_wall_texture,transparent: true});
 const arm_geometry = new THREE.BoxGeometry(0.2, 0.2, 1.5);
 const arm_material = new THREE.MeshStandardMaterial({ color: 0xffdbac});
 const arm_mesh = new THREE.Mesh(arm_geometry, arm_material);
@@ -328,6 +331,7 @@ let last_jump_x = 0;
 let last_jump_y = 0;
 let cas_zmneny_noc_a_dne = 0;
 let random_footstep = 0;
+let frame_per_second = 0;
 const max_HP = 100;
 const barva_den = new THREE.Color(0x87ceeb);
 const barva_noc = new THREE.Color(0x111122); 
@@ -349,6 +353,7 @@ scene.add(floor);
 
 //calling important functions
 setInterval(am_I_movign,13);
+setInterval(show_FPS,1000);
 setInterval(onPointerDown,100);
 
 document.addEventListener('click', () => { 
@@ -380,6 +385,7 @@ document.addEventListener('click', () => {
 
 if (in_game == 0)
 {/*{{{*/
+  show_FPS();
   let number_of_rooms = Math.floor(Math.random() * 7) + 4;
   for (let i = 0;i < number_of_rooms;i++)
   {
@@ -550,7 +556,8 @@ function animate()
     }
     mob.move();
   }
-
+  
+  frame_per_second += 1;
   renderer.render(scene, camera);
 }/*}}}*/
 
@@ -682,7 +689,8 @@ function shortesh_path(start_x, start_z, target_x, target_z)
     visited[start] = 1;
 
     const directions = [
-        1, -1, SIZE, -SIZE
+        1, -1, SIZE, -SIZE,
+        SIZE + 1,SIZE - 1,-SIZE - 1,-SIZE + 1
     ];
 
     while (head < tail)
@@ -741,7 +749,7 @@ function shortesh_path(start_x, start_z, target_x, target_z)
 }/*}}}*/
 
 function map_g_rooms(x, z)
-{  /*{{{*/
+{/*{{{*/
   let length_of_room = Math.floor(Math.random() * half_of_map / 4 + 1) + 10;
   let width_of_room = Math.floor(Math.random() * half_of_map / 4 + 1) + 10;
   let attemps = 0;
@@ -818,30 +826,31 @@ function map_g_rooms(x, z)
       {
         cube.y = 2;
         cube.geometry = new THREE.BoxGeometry(1, 4, 1);
-        cube.mesh = new THREE.Mesh(cube.geometry, cube_material);
+        cube.geometry.translate(wall_x,2,wall_z)
+        cube.mesh = new THREE.Group(cube.geometry,wood_wall_material);
+        add_wall_part(cube.geometry,wood_wall_material);
       }
       else if (wall_y == 0)
       {
         cube.y = 3.20;
         cube.geometry = new THREE.BoxGeometry(1, 1.6, 1);
-        cube.mesh = new THREE.Mesh(cube.geometry, door_block_materialy);
+        cube.geometry.translate(wall_x,3.2,wall_z)
+        cube.mesh = new THREE.Group(cube.geometry,door_block_materialy);
         create_wall_cube(cube.x, cube.z, 4,door_axis);
+        add_wall_part(cube.geometry,door_block_materialy);
       }
       else if (wall_y == 5)
       {
         cube.y = 4.5;
         cube.geometry = new THREE.BoxGeometry(1, 1, 1);
-        cube.mesh = new THREE.Mesh(cube.geometry, roof_block_materialy);
+        cube.geometry.translate(wall_x,4.5,wall_z)
+        cube.mesh = new THREE.Group(cube.geometry,roof_block_materialy);
+        add_wall_part(cube.geometry,roof_block_materialy);
       }
-      cube.mesh.position.set(cube.x, cube.y, cube.z);
-      scene.add(cube.mesh);
-
       if (wall_y != 5) 
       {
         world_plan[(cube.z + half_of_map) * size_of_map + cube.x + half_of_map] = 1;
       }
-      cube.castShadow = true;
-      cube.receiveShadow = true;
     }
     else if (wall_y == 4)
     {
@@ -870,6 +879,7 @@ function map_g_rooms(x, z)
             door.pivot.position.set(door.x, 1.2, door.z - 0.5);
             door.mesh.position.set(0, 0, 0.5);
         }
+        door.mesh.frustumCulled = true;
         door.open = 0;
         door.pivot.rotation.y = 0;
         door.pivot.add(door.mesh);
@@ -878,11 +888,19 @@ function map_g_rooms(x, z)
         door.open = 0;
 
       world_plan[(door.z + half_of_map) * size_of_map + door.x + half_of_map] = 1;
-      door.castShadow = true;
-      door.receiveShadow = true;
     }
   }
-  
+  function add_wall_part(geometry, material)
+  {
+    const part = new THREE.Mesh(geometry, material);
+
+    part.castShadow = false;
+    part.receiveShadow = false;
+
+    house.add(part);
+  }
+
+  let house = new THREE.Group();
   let dvere_x = Math.floor(Math.random() * (length_of_room - 1)) + 1;
   let dvere_z = Math.floor(Math.random() * (width_of_room - 1)) + 1;
   let dvere_kde_x = Math.round(Math.random());
@@ -939,6 +957,8 @@ function map_g_rooms(x, z)
       create_wall_cube(x + i, z + j, 5);
     }
   }
+  
+  scene.add(house);
 }/*}}}*/
 
 function collision(x, z)
@@ -1531,8 +1551,23 @@ function spawn_mods(mod)
       chicken.z
     );
 
+    chicken.mesh.frustumCulled = true;
+
     scene.add(chicken.mesh);
     chicken.type = "chicken";
   }
+}/*}}}*/
+
+function show_FPS()
+{/*{{{*/
+  setTimeout(() => {
+    vypis(frame_per_second);
+    frame_per_second = 0;
+  },1000);
+}/*}}}*/
+
+function vypis(FPS)
+{/*{{{*/
+  fpsNadpis.textContent = "FPS:" + FPS;
 }/*}}}*/
 
