@@ -48,6 +48,15 @@ const villager_arm = texture_loader.load('./sources/images/villager_arm.png');
 const villager_body = texture_loader.load('./sources/images/villager_body.png');
 const villager_neck = texture_loader.load('./sources/images/villager_neck.png');
 const villager_leg = texture_loader.load('./sources/images/villager_leg.png');
+const villager_face_tex = texture_loader.load('./sources/images/villager_head_face.png');
+const villager_ear_tex = texture_loader.load('./sources/images/villager_head_ear.png');
+const villager_ear2_tex = texture_loader.load('./sources/images/villager_head_ear.png');
+const villager_hair_tex = texture_loader.load('./sources/images/villager_head_hair.png');
+const villager_neck_tex = texture_loader.load('./sources/images/villager_head_neck.png');
+const villager_down_tex = texture_loader.load('./sources/images/villager_head_down.png');
+
+villager_ear2_tex.wrapS = THREE.RepeatWrapping;
+villager_ear2_tex.repeat.x = -1;
 
 floor_texture.wrapS = THREE.RepeatWrapping;
 floor_texture.wrapT = THREE.RepeatWrapping;
@@ -60,6 +69,12 @@ const roof_down_block_mat = new THREE.MeshStandardMaterial({map: roof_down_block
 const door_material = new THREE.MeshStandardMaterial({map: door_blok});
 const door_uzky_material = new THREE.MeshStandardMaterial({map: door_uzky_blok});
 const wood_wall_material = new THREE.MeshStandardMaterial({ map: wood_house_wall_texture});
+const villager_face_mat = new THREE.MeshStandardMaterial({ map: villager_face_tex});
+const villager_ear_mat = new THREE.MeshStandardMaterial({ map: villager_ear_tex});
+const villager_ear2_mat = new THREE.MeshStandardMaterial({ map: villager_ear2_tex});
+const villager_hair_mat = new THREE.MeshStandardMaterial({ map: villager_hair_tex});
+const villager_neck_mat = new THREE.MeshStandardMaterial({ map: villager_neck_tex});
+const villager_down_mat = new THREE.MeshStandardMaterial({ map: villager_down_tex});
 
 const directionalLight = new THREE.DirectionalLight(0xffffff, 1.2);
 directionalLight.position.set(5, 10, 7);
@@ -84,7 +99,7 @@ scene.add(directionalLight);
 renderer.shadowMap.enabled = false;
 
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-camera.position.set(-10, 2, -10);
+camera.position.set(-10, 3, -10);
 
 const floor_material = new THREE.MeshStandardMaterial({ 
   map: floor_texture,
@@ -117,6 +132,14 @@ const doors_block_materialy = [
   door_material  
 ];
 
+const villager_head_material = [
+  villager_ear_mat,
+  villager_ear2_mat,
+  villager_hair_mat,
+  villager_down_mat,
+  villager_neck_mat,
+  villager_face_mat,
+];
 
 class Walls
 {/*{{{*/
@@ -171,111 +194,116 @@ class Mods
     this.path = [];
     this.path_piece = 0;
     this.mesh = 0;
+    this.mluvim = 0;
     this.id = g_id++;
     mods[this.id] = this;
   } 
 
   move()
   {
-    if (this.any_cil == 0 && this.angel_is_ok == 1)
+    if (this.mluvim == 0)
     {
-      this.any_cil = 1;
-      this.path = shortesh_path(
-        this.x, this.z,
-        this.cil_x,this.cil_z
-      );
-
-      if (this.path === 0) {
-        this.any_cil = 0;
-        return;
-      }
-      this.path_piece = 0;
-      this.next_cil_z = this.path[this.path_piece][0];
-      this.next_cil_x = this.path[this.path_piece][1];
-    }
-    else
-    { 
-      const xd = this.next_cil_x - this.x;
-      const zd = this.next_cil_z - this.z;
-      const d = Math.sqrt(xd*xd + zd*zd);
-      if (this.angel_is_ok == 1)
+      if (this.any_cil == 0 && this.angel_is_ok == 1)
       {
+        this.any_cil = 1;
+        this.path = shortesh_path(
+          this.x, this.z,
+          this.cil_x,this.cil_z
+        );
 
-        this.wanted_angel = Math.atan2(xd, zd);
-
-        this.wanted_angel = Math.atan2(xd, zd);
-
-        if (this.type == "villager")
-        {
-            this.wanted_angel -= Math.PI / 2;
+        if (this.path === 0) {
+          this.any_cil = 0;
+          return;
         }
-
-        this.rotation_angel = this.wanted_angel - this.angel;
-        
-        if (this.rotation_angel < -Math.PI) this.rotation_angel += Math.PI * 2;
-        if (this.rotation_angel > Math.PI) this.rotation_angel -= Math.PI * 2;
+        this.path_piece = 0;
+        this.next_cil_z = this.path[this.path_piece][0];
+        this.next_cil_x = this.path[this.path_piece][1];
       }
-      this.mesh.rotation.y = this.angel - (Math.PI / 2);
-      
-      if (Math.abs(this.wanted_angel - this.angel) > 0.1)
-      {
-        this.angel += this.rotation_angel / 100;
-        this.angel = Math.atan2(Math.sin(this.angel), Math.cos(this.angel)); 
+      else
+      { 
+        const xd = this.next_cil_x - this.x;
+        const zd = this.next_cil_z - this.z;
+        const d = Math.sqrt(xd*xd + zd*zd);
+        if (this.angel_is_ok == 1)
+        {
 
+          this.wanted_angel = Math.atan2(xd, zd);
+
+          this.wanted_angel = Math.atan2(xd, zd);
+
+          if (this.type == "villager")
+          {
+              this.wanted_angel -= Math.PI / 2;
+          }
+
+          this.rotation_angel = this.wanted_angel - this.angel;
+          
+          if (this.rotation_angel < -Math.PI) this.rotation_angel += Math.PI * 2;
+          if (this.rotation_angel > Math.PI) this.rotation_angel -= Math.PI * 2;
+        }
+        this.mesh.rotation.y = this.angel - (Math.PI / 2);
+        
         if (Math.abs(this.wanted_angel - this.angel) > 0.1)
         {
-          this.angel_is_ok = 0;
+          this.angel += this.rotation_angel / 100;
+          this.angel = Math.atan2(Math.sin(this.angel), Math.cos(this.angel)); 
+
+          if (Math.abs(this.wanted_angel - this.angel) > 0.1)
+          {
+            this.angel_is_ok = 0;
+          }
+          else
+          {
+            this.angel = this.wanted_angel;
+            this.angel_is_ok = 1;
+          }
         }
         else
         {
           this.angel = this.wanted_angel;
           this.angel_is_ok = 1;
         }
-      }
-      else
-      {
-        this.angel = this.wanted_angel;
-        this.angel_is_ok = 1;
-      }
-      if (this.angel_is_ok == 1 && d <= this.speed || d == 0)
-      {
-        this.x = this.next_cil_x;
-        this.z = this.next_cil_z;
-        this.path_piece++;
-        if (this.path_piece >= this.path.length)
+        if (this.angel_is_ok == 1 && d <= this.speed || d == 0)
         {
-            this.any_cil = 0;
-            this.wanted_angel = this.angel;
-            this.path = [];
-            return;
+          this.x = this.next_cil_x;
+          this.z = this.next_cil_z;
+          this.path_piece++;
+          if (this.path_piece >= this.path.length)
+          {
+              this.any_cil = 0;
+              this.wanted_angel = this.angel;
+              this.path = [];
+              return;
+          }
+          this.next_cil_z = this.path[this.path_piece][0];
+          this.next_cil_x = this.path[this.path_piece][1];
         }
-        this.next_cil_z = this.path[this.path_piece][0];
-        this.next_cil_x = this.path[this.path_piece][1];
-      }
-      else if (this.angel_is_ok == 1)
-      {
-        const nove_x = this.x + xd/d * this.speed;
-        const nove_z = this.z + zd/d * this.speed;
-
-        const grid_x = Math.round(nove_x + 40);
-        const grid_z = Math.round(nove_z + 40);
-
-        const index = grid_z * size_of_map + grid_x;
-
-        if (world_plan[index] !== 1)
+        else if (this.angel_is_ok == 1)
         {
-            this.x = nove_x;
-            this.z = nove_z;
+          const nove_x = this.x + xd/d * this.speed;
+          const nove_z = this.z + zd/d * this.speed;
+
+          const grid_x = Math.round(nove_x + 40);
+          const grid_z = Math.round(nove_z + 40);
+
+          const index = grid_z * size_of_map + grid_x;
+
+          if (world_plan[index] !== 1)
+          {
+              this.x = nove_x;
+              this.z = nove_z;
+          }
+          else
+          {
+              this.any_cil = 0;
+              this.path = [];
+          }
         }
-        else
-        {
-            this.any_cil = 0;
-            this.path = [];
-        }
+        this.mesh.position.set(this.x, this.y, this.z);
       }
-      this.mesh.position.set(this.x, this.y, this.z);
     }
   }
+  
 
 }/*}}}*/
 
@@ -523,8 +551,9 @@ function animate()
   let faktor = (Math.sin(cas_zmneny_noc_a_dne) + 1) / 2; 
   scene.background.copy(barva_noc).lerp(barva_den, faktor);
   
-  for (let mob of Object.values(mods))
+  for (const id in mods)
   {
+    const mob = mods[id];
     let vse_okk = 0;
     if (mob.any_cil == 0)
     {
@@ -1101,38 +1130,36 @@ function map_g_rooms(x, z)
 
 function collision(x, z)
 {/*{{{*/
-  for (let cube of Object.values(walls))
-  {
-    let wall_x = cube.x;
-    let wall_z = cube.z;
+    let distance = 0.3;
 
-    if (
-      Math.abs(x - wall_x) < 0.8 &&
-      Math.abs(z - wall_z) < 0.8 &&
-      cube.y == 2)
+    let points = [
+        [x - distance, z],
+        [x + distance, z],
+        [x, z - distance],
+        [x, z + distance],
+
+        [x - distance, z - distance],
+        [x + distance, z - distance],
+        [x - distance, z + distance],
+        [x + distance, z + distance]
+    ];
+
+    for (let point of points)
     {
-      return true;
+        let grid_x = Math.round(point[0] + 40);
+        let grid_z = Math.round(point[1] + 40);
+
+        if (grid_x < 0 || grid_x >= 80 ||
+            grid_z < 0 || grid_z >= 80)
+            return true;
+
+        let index = grid_z * 80 + grid_x;
+
+        if (world_plan[index] === 1)
+            return true;
     }
-  }
-  for (let door of Object.values(doors))
-  {
-      if (door.open === 1)
-      {
-          continue;
-      }
 
-      let wall_x = door.x;
-      let wall_z = door.z;
-
-      if (
-          Math.abs(x - wall_x) < 0.8 &&
-          Math.abs(z - wall_z) < 0.8
-      )
-      {
-          return true;
-      }
-  }
-  return false;
+    return false;
 }/*}}}*/
 
 function can_I_jump(x,z)
@@ -1552,7 +1579,8 @@ function onPointerDown()
             door.pivot.rotation.y = -((Math.PI / 2) / 8) * 5;
           },500);
           setTimeout(() => {
-            door.pivot.rotation.y = -((Math.PI / 2) / 8) * 6;
+            door.pivot.rotation.y = -((Math.PI / 2) / 8) * 6
+            world_plan[(door.z + half_of_map) * size_of_map + door.x + half_of_map] = 0;
           },625);
           setTimeout(() => {
             door.pivot.rotation.y = -((Math.PI / 2) / 8) * 7;
@@ -1572,6 +1600,7 @@ function onPointerDown()
           },125);
           setTimeout(() => {
             door.pivot.rotation.y = -((Math.PI / 2) / 8) * 5;
+            world_plan[(door.z + half_of_map) * size_of_map + door.x + half_of_map] = 1;
           },250);
           setTimeout(() => {
             door.pivot.rotation.y = -((Math.PI / 2) / 8) * 4;
@@ -1589,7 +1618,6 @@ function onPointerDown()
             door.pivot.rotation.y = 0;
             door.opening = 0
           },875);
-
       }
     }
     else
@@ -1787,7 +1815,7 @@ function spawn_mods(mob)
 
     const head = new THREE.BoxGeometry(0.9,0.9,0.9);
     head.translate(0,3,0);
-    add_villager_part(head, materialnik);
+    add_villager_part(head, villager_head_material);
  
     villager.mesh.position.set(
       villager.x,
