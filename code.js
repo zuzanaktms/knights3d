@@ -49,6 +49,7 @@ const villager_body = texture_loader.load('./sources/images/villager_body.png');
 const villager_neck = texture_loader.load('./sources/images/villager_neck.png');
 const villager_leg = texture_loader.load('./sources/images/villager_leg.png');
 const villager_face_tex = texture_loader.load('./sources/images/villager_head_face.png');
+const villager_face2_tex = texture_loader.load('./sources/images/villager_head_face_2.png');
 const villager_ear_tex = texture_loader.load('./sources/images/villager_head_ear.png');
 const villager_ear2_tex = texture_loader.load('./sources/images/villager_head_ear.png');
 const villager_hair_tex = texture_loader.load('./sources/images/villager_head_hair.png');
@@ -70,6 +71,7 @@ const door_material = new THREE.MeshStandardMaterial({map: door_blok});
 const door_uzky_material = new THREE.MeshStandardMaterial({map: door_uzky_blok});
 const wood_wall_material = new THREE.MeshStandardMaterial({ map: wood_house_wall_texture});
 const villager_face_mat = new THREE.MeshStandardMaterial({ map: villager_face_tex});
+const villager_face2_mat = new THREE.MeshStandardMaterial({ map: villager_face2_tex});
 const villager_ear_mat = new THREE.MeshStandardMaterial({ map: villager_ear_tex});
 const villager_ear2_mat = new THREE.MeshStandardMaterial({ map: villager_ear2_tex});
 const villager_hair_mat = new THREE.MeshStandardMaterial({ map: villager_hair_tex});
@@ -196,6 +198,14 @@ class Mods
     this.mesh = 0;
     this.mluvim = 0;
     this.id = g_id++;
+    this.dialog = 0;
+    this.max_dialog = 3;
+    this.next_dialog = 0;
+    this.type_of_dialog = Math.round(Math.random());
+    this.last_dialog = 0;
+    this.text_sprite = null;
+    this.face_texture = 0;
+    this.head_mesh = null;
     mods[this.id] = this;
   } 
 
@@ -226,8 +236,6 @@ class Mods
         const d = Math.sqrt(xd*xd + zd*zd);
         if (this.angel_is_ok == 1)
         {
-
-          this.wanted_angel = Math.atan2(xd, zd);
 
           this.wanted_angel = Math.atan2(xd, zd);
 
@@ -303,8 +311,134 @@ class Mods
       }
     }
   }
-  
 
+  speak()
+  {
+    if (this.mluvim == 1)
+    {
+      const dx = camera.position.x - this.x;
+      const dz = camera.position.z - this.z;
+
+      if (!this.rotate(dx, dz))
+      {
+        return;
+      }
+
+      if (this.next_dialog <= 109)
+      {
+        this.next_dialog++;
+        if (this.next_dialog % 5 === 0 && this.dialog <= 3)
+        {
+          if (this.face_texture == 0)
+          {
+            this.head_mesh.material[5].map = villager_face2_mat.map;
+            this.head_mesh.material[5].needsUpdate = true;
+            this.face_texture = 1;
+          }
+          else
+          {
+            this.head_mesh.material[5].map = villager_face_mat.map;
+            this.head_mesh.material[5].needsUpdate = true;
+            this.face_texture = 0;
+          }
+        }
+      }
+      else
+      {
+        if (this.dialog > this.max_dialog)
+        {
+          if (this.text_sprite) {
+            scene.remove(this.text_sprite);
+            this.text_sprite = null;
+          }
+          this.dialog = 0;
+          this.last_dialog = 0;
+          this.mluvim = 0;
+          mluvim = 0;
+          this.next_dialog = 0;
+          return;
+        }
+        else
+        {
+          this.dialog++;
+          this.next_dialog = 0;
+        }
+      }
+
+      if (this.last_dialog != this.dialog)
+      {
+        this.last_dialog = this.dialog;
+
+        if (this.text_sprite) {
+          scene.remove(this.text_sprite);
+          this.text_sprite = null;
+        }
+
+        if (this.dialog == 1)
+        {
+          if (this.type_of_dialog == 0)
+          {
+            this.text_sprite = make_text("Co je?", this.x, this.y + 4, this.z);
+          }
+          else
+          {
+            this.text_sprite = make_text("Co potřebuješ?", this.x, this.y + 4, this.z);
+          }
+        }
+        else if (this.dialog == 2)
+        {
+          if (this.type_of_dialog == 1)
+          {
+            this.text_sprite = make_text("Aha to jsi ty.", this.x, this.y + 4, this.z);
+          }
+          else
+          {
+            this.text_sprite = make_text("Nevidíš že mám práci.", this.x, this.y + 4, this.z);
+          }
+        }
+        else if (this.dialog == 3)
+        {
+          if (this.type_of_dialog == 1)
+          {
+            this.text_sprite = make_text("Jdi pryč.", this.x, this.y + 4, this.z);
+          }
+          else
+          {
+            this.text_sprite = make_text("TÁHNI.", this.x, this.y + 4, this.z);
+          }
+        }
+      }
+    }
+  }
+
+  rotate(x, z)
+  {
+    this.wanted_angel = Math.atan2(x, z);
+
+    if (this.type == "villager")
+    {
+        this.wanted_angel -= Math.PI / 2;
+    }
+
+    this.rotation_angel = this.wanted_angel - this.angel;
+
+    if (this.rotation_angel < -Math.PI) this.rotation_angel += Math.PI * 2;
+    if (this.rotation_angel > Math.PI) this.rotation_angel -= Math.PI * 2;
+    
+    if (Math.abs(this.rotation_angel) > 0.1)
+    {
+      this.angel += this.rotation_angel / 40;
+      this.angel = Math.atan2(Math.sin(this.angel), Math.cos(this.angel)); 
+      this.mesh.rotation.y = this.angel - (Math.PI / 2);
+      return false;
+    }
+    else
+    {
+      this.angel = this.wanted_angel;
+      this.mesh.rotation.y = this.angel - (Math.PI / 2);
+      return true;
+    }
+  }
 }/*}}}*/
 
 class Piece
@@ -372,6 +506,7 @@ let last_jump_y = 0;
 let cas_zmneny_noc_a_dne = 0;
 let random_footstep = 0;
 let frame_per_second = 0;
+let mluvim = 0;
 const max_HP = 100;
 const barva_den = new THREE.Color(0x87ceeb);
 const barva_noc = new THREE.Color(0x111122); 
@@ -380,6 +515,8 @@ let doors = {};
 let world_plan = [];
 let mods = {};
 let pieces = {};
+let raycaster_all = [];
+let villagers = {};
 
 arm2_mesh.position.set(-0.4, -0.7, -0.9);
 camera.add(arm2_mesh);
@@ -392,9 +529,9 @@ floor.receiveShadow = true;
 scene.add(floor);
 
 //calling important functions
-setInterval(am_I_movign,13);
+setInterval(am_I_movign,20);
 setInterval(show_FPS,1000);
-setInterval(onPointerDown,100);
+setInterval(onPointerDown,120);
 
 document.addEventListener('click', () => { 
   if (in_game == 1 && buch == 0)/*{{{*/
@@ -431,8 +568,16 @@ if (in_game == 0)
   {
     map_g_rooms(Math.floor(Math.random() * half_of_map + 1) - half_of_map / 2, Math.floor(Math.random() *  half_of_map + 1) - half_of_map / 2)
   }
-  spawn_mods("chicken");
-  spawn_mods("villager");
+  number_of_rooms = 1;//Math.floor(Math.random() * 7) + 4;
+  for (let i = 0;i < number_of_rooms;i++)
+  {
+    spawn_mods("villager");
+  }
+  number_of_rooms = 1;//Math.floor(Math.random() * 7) + 4;
+  for (let i = 0;i < number_of_rooms;i++)
+  {
+    spawn_mods("chicken");
+  }
 }/*}}}*/
 
 document.addEventListener('click', () => { 
@@ -451,53 +596,56 @@ mouse_control.addEventListener('lock', () => { in_game = 1; });
 mouse_control.addEventListener('unlock', () => { in_game = 0; });
 
 window.addEventListener('keydown', (event) => {
-  if (event.ctrlKey && (event.code === 'KeyW' || event.code === 'ArrowUp')) /*{{{*/
+  if (mluvim == 0)
   {
-    event.preventDefault();
-    W_key = 1;
-  }
-  if (event.code === 'Space')
-  {
-    event.preventDefault();
-  }
-  if (in_game == 1 && buch == 0) 
-  {
-    if (event.code === 'KeyW' || event.code === 'ArrowUp')
+    if (event.ctrlKey && (event.code === 'KeyW' || event.code === 'ArrowUp')) /*{{{*/
     {
+      event.preventDefault();
       W_key = 1;
     }
-    if (event.code === 'KeyS' || event.code === 'ArrowDown')
+    if (event.code === 'Space')
     {
-      S_key = 1;
+      event.preventDefault();
     }
-    if (event.code === 'KeyA' || event.code === 'ArrowLeft')
+    if (in_game == 1 && buch == 0) 
     {
-      A_key = 1;
-    }
-    if (event.code === 'KeyD' || event.code === 'ArrowRight')
-    {
-      D_key = 1;
-    }
-    if (event.code === 'ShiftLeft' || event.code === 'ShiftRight')
-    {
-      Shift_key = 1;
-    }
-    if (event.code === 'Space' && jump == 0)
-    {
-      if (can_I_jump(camera.position.x,camera.position.z))
+      if (event.code === 'KeyW' || event.code === 'ArrowUp')
       {
-        jump = 1;
-        last_jump_x = camera.position.x;
-        last_jump_y = camera.position.y;
+        W_key = 1;
       }
-    }
-    if (event.code ==='KeyX')
-    {
-      crouch = 1;
-    }
-    if (event.code == 'KeyE')
-    {
-      E_key = 1;
+      if (event.code === 'KeyS' || event.code === 'ArrowDown')
+      {
+        S_key = 1;
+      }
+      if (event.code === 'KeyA' || event.code === 'ArrowLeft')
+      {
+        A_key = 1;
+      }
+      if (event.code === 'KeyD' || event.code === 'ArrowRight')
+      {
+        D_key = 1;
+      }
+      if (event.code === 'ShiftLeft' || event.code === 'ShiftRight')
+      {
+        Shift_key = 1;
+      }
+      if (event.code === 'Space' && jump == 0)
+      {
+        if (can_I_jump(camera.position.x,camera.position.z))
+        {
+          jump = 1;
+          last_jump_x = camera.position.x;
+          last_jump_y = camera.position.y;
+        }
+      }
+      if (event.code ==='KeyX')
+      {
+        crouch = 1;
+      }
+      if (event.code == 'KeyE')
+      {
+        E_key = 1;
+      }
     }
   }
 });/*}}}*/
@@ -540,9 +688,11 @@ window.addEventListener('keyup', (event) => {
   }
 });/*}}}*/
 
+
 function animate() 
 {/*{{{*/
   requestAnimationFrame(animate);
+  
   if (last_HP != HP)
   {
     update_HP(HP);
@@ -597,6 +747,7 @@ function animate()
       }
     }
     mob.move();
+    mob.speak();
   }
   
   frame_per_second += 1;
@@ -610,7 +761,6 @@ function animate()
           "Geometries:", renderer.info.memory.geometries
       );
   }
-
 }/*}}}*/
 
 animate();
@@ -1030,6 +1180,7 @@ function map_g_rooms(x, z)
           wood_wall_material
       );
       house.add(wall_mesh);
+      raycaster_all.push(wall_mesh);
   }
   if (roof_geometries.length)
   {
@@ -1124,6 +1275,7 @@ function map_g_rooms(x, z)
           door_block_materialy
       );
       house.add(dobl_mesh);
+      raycaster_all.push(dobl_mesh);
   }
   scene.add(house);
 }/*}}}*/
@@ -1530,17 +1682,26 @@ function am_I_movign()
 
 function onPointerDown()
 {/*{{{*/
-    if (in_game == 0)
+    if (in_game != 1 || E_key != 1)
     {
       return;
     }
     pointer.set(0, 0);
     raycaster.setFromCamera(pointer, camera);
-
     const door_list = Object.values(doors);
     const door_meshes = door_list.map(door => door.mesh);
+    const villager_list = Object.values(villagers);
+    const villager_meshes = villager_list.map(villager => villager.mesh);
 
-    const intersects = raycaster.intersectObjects(door_meshes);
+    const all_objects = [
+        ...raycaster_all,
+        ...door_meshes,
+        ...villager_meshes
+    ];
+
+    raycaster.far = 5;
+
+    const intersects = raycaster.intersectObjects(all_objects, true);
 
     if (intersects.length === 0)
     {
@@ -1548,11 +1709,19 @@ function onPointerDown()
     }
 
     const hit_mesh = intersects[0].object;
+    
     const door = door_list.find(d => d.mesh === hit_mesh);
-    let is_player_in_door = 0;
-    if (door.x == Math.round(camera.position.x))
+    const villager = villager_list.find(v => 
+      v.mesh === hit_mesh || v.mesh.getObjectById(hit_mesh.id) !== undefined
+    );
+    if (!door && !villager)
     {
-      if (door.z == Math.round(camera.position.z))
+      return;
+    }
+    let is_player_in_door = 0;
+    if (door && door.x == Math.round(camera.position.x))
+    {
+      if (door && door.z == Math.round(camera.position.z))
       {
         is_player_in_door = 1; 
       }
@@ -1590,7 +1759,7 @@ function onPointerDown()
             door.opening = 0;
           },875);
       }
-      else
+      else if (door)
       {
           door.opening = 1;
           wooden_door_close.play();
@@ -1619,6 +1788,12 @@ function onPointerDown()
             door.opening = 0
           },875);
       }
+    }
+    else if (villager && E_key == 1 && villager.mluvim == 0)
+    {
+      villager.mluvim = 1;
+      villager.dialog = 1;
+      mluvim = 1;
     }
     else
     {
@@ -1727,6 +1902,7 @@ function spawn_mods(mob)
     let vse_ok = 0;
     let attemps = 0;
     let villager = new Mods();
+    villagers[villager.id] = villager;
 
     while (vse_ok == 0)
     {
@@ -1779,9 +1955,14 @@ function spawn_mods(mob)
         map: villager_leg
     });
 
-    function add_villager_part(geometry, material)
+    function add_villager_part(geometry, material,head)
     {
       const part = new THREE.Mesh(geometry, material);
+      
+      if (head == 1)
+      {
+        villager.head_mesh = part;
+      }
 
       part.castShadow = false;
       part.receiveShadow = false;
@@ -1791,31 +1972,33 @@ function spawn_mods(mob)
 
     const leg1 = new THREE.BoxGeometry(0.45,1.2,0.4);
     leg1.translate(-0.3,0.7,0);
-    add_villager_part(leg1, leg_material);
+    add_villager_part(leg1, leg_material,0);
 
     const leg2 = new THREE.BoxGeometry(0.45,1.2,0.4);
     leg2.translate(0.3,0.7,0);
-    add_villager_part(leg2, leg_material);
+    add_villager_part(leg2, leg_material,0);
 
     const body = new THREE.BoxGeometry(1.3,1.5,0.8);
     body.translate(0,1.6,0);
-    add_villager_part(body, body_material);
+    add_villager_part(body, body_material,0);
 
     const arm1 = new THREE.BoxGeometry(0.5,1.2,0.3);
     arm1.translate(-0.7,1.6,0);
-    add_villager_part(arm1, arm_material);
+    add_villager_part(arm1, arm_material,0);
 
     const arm2 = new THREE.BoxGeometry(0.5,1.2,0.3);
     arm2.translate(0.7,1.6,0);
-    add_villager_part(arm2, arm_material);
+    add_villager_part(arm2, arm_material,0);
 
     const neck = new THREE.BoxGeometry(0.5,1,0.4);
     neck.translate(0,2.1,0);
-    add_villager_part(neck, neck_material);
+    add_villager_part(neck, neck_material,0);
 
     const head = new THREE.BoxGeometry(0.9,0.9,0.9);
     head.translate(0,3,0);
-    add_villager_part(head, villager_head_material);
+    const vlastni_head_material = villager_head_material.map(m => m.clone());
+    add_villager_part(head, vlastni_head_material, 1);
+
  
     villager.mesh.position.set(
       villager.x,
@@ -1843,4 +2026,32 @@ function vypis(FPS)
 {/*{{{*/
   fpsNadpis.textContent = "FPS:" + FPS;
 }/*}}}*/
+
+function make_text(text, x, y, z) 
+{
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    canvas.width = 512;
+    canvas.height = 128;
+
+    context.font = 'Bold 48px Arial';
+    context.fillStyle = 'white';
+    context.textAlign = 'center';
+    context.textBaseline = 'middle';
+    
+    context.strokeStyle = 'black';
+    context.lineWidth = 6;
+    context.strokeText(text, canvas.width / 2, canvas.height / 2);
+    context.fillText(text, canvas.width / 2, canvas.height / 2);
+
+    const texture = new THREE.CanvasTexture(canvas);
+    const material = new THREE.SpriteMaterial({ map: texture });
+    const sprite = new THREE.Sprite(material);
+
+    sprite.position.set(x, y, z);
+    sprite.scale.set(2, 0.5, 1);
+
+    scene.add(sprite);
+    return sprite;
+}
 
