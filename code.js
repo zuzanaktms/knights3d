@@ -101,47 +101,47 @@ scene.add(directionalLight);
 renderer.shadowMap.enabled = false;
 
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-camera.position.set(-10, 3, -10);
+camera.position.set(-10, 2.3, -10);
 
 const floor_material = new THREE.MeshStandardMaterial({ 
-  map: floor_texture,
-});
+  map: floor_texture,/*{{{*/
+});/*}}}*/
 
 const door_block_materialy = [
-  door_block_material,
+  door_block_material,/*{{{*/
   door_block_material,
   door_block_material,
   door_block_down_material,
   door_block_material,
   door_block_material  
-];
+];/*}}}*/
 
 const roof_block_materialy = [
-  roof_up_block_mat,
+  roof_up_block_mat,/*{{{*/
   roof_up_block_mat,
   roof_up_block_mat,
   roof_down_block_mat,
   roof_up_block_mat,
   roof_up_block_mat  
-];
+];/*}}}*/
 
 const doors_block_materialy = [
-  door_uzky_material,
+  door_uzky_material,/*{{{*/
   door_uzky_material,
   door_uzky_material,
   door_uzky_material,
   door_material,
   door_material  
-];
+];/*}}}*/
 
 const villager_head_material = [
-  villager_ear_mat,
+  villager_ear_mat,/*{{{*/
   villager_ear2_mat,
   villager_hair_mat,
   villager_down_mat,
   villager_neck_mat,
   villager_face_mat,
-];
+];/*}}}*/
 
 class Walls
 {/*{{{*/
@@ -378,33 +378,33 @@ class Mods
         {
           if (this.type_of_dialog == 0)
           {
-            this.text_sprite = make_text("Co je?", this.x, this.y + 4, this.z);
+            this.text_sprite = make_text("Co je?", this.x, this.y + 3.875, this.z);
           }
           else
           {
-            this.text_sprite = make_text("Co potřebuješ?", this.x, this.y + 4, this.z);
+            this.text_sprite = make_text("Co potřebuješ?", this.x, this.y + 3.875, this.z);
           }
         }
         else if (this.dialog == 2)
         {
           if (this.type_of_dialog == 1)
           {
-            this.text_sprite = make_text("Aha to jsi ty.", this.x, this.y + 4, this.z);
+            this.text_sprite = make_text("Aha to jsi ty.", this.x, this.y + 3.875, this.z);
           }
           else
           {
-            this.text_sprite = make_text("Nevidíš že mám práci.", this.x, this.y + 4, this.z);
+            this.text_sprite = make_text("Nevidíš že mám práci.", this.x, this.y + 3.875, this.z);
           }
         }
         else if (this.dialog == 3)
         {
           if (this.type_of_dialog == 1)
           {
-            this.text_sprite = make_text("Jdi pryč.", this.x, this.y + 4, this.z);
+            this.text_sprite = make_text("Jdi pryč.", this.x, this.y + 3.875, this.z);
           }
           else
           {
-            this.text_sprite = make_text("TÁHNI.", this.x, this.y + 4, this.z);
+            this.text_sprite = make_text("TÁHNI.", this.x, this.y + 3.875, this.z);
           }
         }
       }
@@ -534,7 +534,7 @@ setInterval(show_FPS,1000);
 setInterval(onPointerDown,120);
 
 document.addEventListener('click', () => { 
-  if (in_game == 1 && buch == 0)/*{{{*/
+  if (in_game == 1 && buch == 0 && mluvim == 0)/*{{{*/
   {
     if (W_key == 1 )
     {
@@ -568,16 +568,18 @@ if (in_game == 0)
   {
     map_g_rooms(Math.floor(Math.random() * half_of_map + 1) - half_of_map / 2, Math.floor(Math.random() *  half_of_map + 1) - half_of_map / 2)
   }
-  number_of_rooms = 1;//Math.floor(Math.random() * 7) + 4;
+  spawn_player();
+  number_of_rooms = Math.floor(Math.random() * 7) + 4;
   for (let i = 0;i < number_of_rooms;i++)
   {
     spawn_mods("villager");
   }
-  number_of_rooms = 1;//Math.floor(Math.random() * 7) + 4;
+  number_of_rooms = Math.floor(Math.random() * 7) + 4;
   for (let i = 0;i < number_of_rooms;i++)
   {
     spawn_mods("chicken");
   }
+
 }/*}}}*/
 
 document.addEventListener('click', () => { 
@@ -722,7 +724,7 @@ function animate()
             let next_z = mob.z + plus_z;
 
             if (next_x < border_min|| next_x > border_max ||
-                next_z < border_min || next_z > border_max)
+            next_z < border_min || next_z > border_max)
             {
                 continue;
             }
@@ -731,7 +733,7 @@ function animate()
 
             if (world_plan[index] !== 1)
             {
-                mob.cil_x = next_x;
+               mob.cil_x = next_x;
                 mob.cil_z = next_z;
                 vse_okk = 1;
                 break;
@@ -739,7 +741,7 @@ function animate()
         }
       }
 
-      if (vse_okk == 0)
+     if (vse_okk == 0)
       {
           mob.cil_x = mob.x;
           mob.cil_z = mob.z;
@@ -747,7 +749,7 @@ function animate()
       }
     }
     mob.move();
-    mob.speak();
+   mob.speak();
   }
   
   frame_per_second += 1;
@@ -861,6 +863,7 @@ function shortesh_path(start_x, start_z, target_x, target_z)
     const startZ = Math.round(start_z + half_of_map);
     const targetX = Math.round(target_x + half_of_map);
     const targetZ = Math.round(target_z + half_of_map);
+
     if (
         startX < 0 || startX >= SIZE ||
         startZ < 0 || startZ >= SIZE ||
@@ -873,10 +876,7 @@ function shortesh_path(start_x, start_z, target_x, target_z)
     const start = startZ * SIZE + startX;
     const target = targetZ * SIZE + targetX;
 
-    if (world_plan[target] == 1)
-    {
-        return 0;
-    }
+    if (world_plan[target] == 1) return 0;
 
     const visited = new Uint8Array(CELLS);
     const parent = new Int32Array(CELLS);
@@ -890,33 +890,31 @@ function shortesh_path(start_x, start_z, target_x, target_z)
     queue[tail++] = start;
     visited[start] = 1;
 
-    const directions = [
-        1, -1, SIZE, -SIZE,
-        SIZE + 1,SIZE - 1,-SIZE - 1,-SIZE + 1
-    ];
+    const dx = [1, -1, 0, 0];
+    const dz = [0, 0, 1, -1];
 
     while (head < tail)
     {
         const current = queue[head++];
 
-        if (current == target)
-        {
-            break;
-        }
+        if (current === target) break;
 
         const x = current % SIZE;
         const z = Math.floor(current / SIZE);
 
-        for (let dir of directions)
+        for (let i = 0; i < 4; i++)
         {
-            const next = current + dir;
+            const nx = x + dx[i];
+            const nz = z + dz[i];
 
-            if (dir == 1 && x == SIZE - 1) continue;
-            if (dir == -1 && x == 0) continue;
-            if (dir == SIZE && z == SIZE - 1) continue;
-            if (dir == -SIZE && z == 0) continue;
+            if (
+                nx < 0 || nx >= SIZE ||
+                nz < 0 || nz >= SIZE
+            ) continue;
 
-            if (visited[next] == 1) continue;
+            const next = nz * SIZE + nx;
+
+            if (visited[next]) continue;
             if (world_plan[next] == 1) continue;
 
             visited[next] = 1;
@@ -926,25 +924,31 @@ function shortesh_path(start_x, start_z, target_x, target_z)
         }
     }
 
-    if (visited[target] == 0)
-    {
-        return 0;
-    }
+    if (!visited[target]) return 0;
 
-    let path = [];
+    const path = [];
     let current = target;
 
-    while (current != start)
+    while (current !== start)
     {
+        if (current === -1) return 0;
+
         const z = Math.floor(current / SIZE);
         const x = current % SIZE;
 
-        path.push([z - half_of_map, x - half_of_map]);
+        path.push([
+            z - half_of_map,
+            x - half_of_map
+        ]);
 
         current = parent[current];
     }
 
-    path.push([startZ - half_of_map, startX - half_of_map]);
+    path.push([
+        startZ - half_of_map,
+        startX - half_of_map
+    ]);
+
     path.reverse();
 
     return path;
@@ -1630,11 +1634,11 @@ function am_I_movign()
 
   if (crouch == 0)
   {
-    camera.position.y = now_gravitation + 2;
+    camera.position.y = now_gravitation + 2.3;
   }
   else if (crouch == 1)
   {
-    camera.position.y = now_gravitation + 1.25;
+    camera.position.y = now_gravitation + 1.55;
   }
 
   if (buch >= 2 && buch <= 50)
@@ -1955,6 +1959,15 @@ function spawn_mods(mob)
         map: villager_leg
     });
 
+    const villager_arm_material = [
+      arm_material,/*{{{*/
+      arm_material,
+      body_material,
+      villager_down_mat,
+      arm_material,
+      arm_material,
+    ];/*}}}*/
+
     function add_villager_part(geometry, material,head)
     {
       const part = new THREE.Mesh(geometry, material);
@@ -1984,11 +1997,11 @@ function spawn_mods(mob)
 
     const arm1 = new THREE.BoxGeometry(0.5,1.2,0.3);
     arm1.translate(-0.7,1.6,0);
-    add_villager_part(arm1, arm_material,0);
+    add_villager_part(arm1, villager_arm_material,0);
 
     const arm2 = new THREE.BoxGeometry(0.5,1.2,0.3);
     arm2.translate(0.7,1.6,0);
-    add_villager_part(arm2, arm_material,0);
+    add_villager_part(arm2, villager_arm_material,0);
 
     const neck = new THREE.BoxGeometry(0.5,1,0.4);
     neck.translate(0,2.1,0);
@@ -2028,7 +2041,7 @@ function vypis(FPS)
 }/*}}}*/
 
 function make_text(text, x, y, z) 
-{
+{/*{{{*/
     const canvas = document.createElement('canvas');
     const context = canvas.getContext('2d');
     canvas.width = 512;
@@ -2053,5 +2066,30 @@ function make_text(text, x, y, z)
 
     scene.add(sprite);
     return sprite;
-}
+}/*}}}*/
+
+function spawn_player()
+{/*{{{*/
+  let position_x = Math.floor(Math.random() * size_of_map + 1) - half_of_map;
+  let position_z = Math.floor(Math.random() * size_of_map + 1) - half_of_map;
+  let okkk = 0;
+  let tries = 0;
+  while (okkk == 0)
+  {
+    position_x = Math.floor(Math.random() * size_of_map + 1) - half_of_map;
+    position_z = Math.floor(Math.random() * size_of_map + 1) - half_of_map;
+    tries++;
+    if (world_plan[position_z * 80 + position_x] == 1)
+    {
+      okkk = 0;
+    }
+    else
+    {
+      okkk = 1;
+    }
+  }
+
+  camera.position.set(position_x, 2.3, position_z);
+  return;
+}/*}}}*/
 
