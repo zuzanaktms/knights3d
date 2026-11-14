@@ -44,6 +44,7 @@ const door_uzky_blok = texture_loader.load('./sources/images/wooden_door_other_s
 const slepice_noha = texture_loader.load('./sources/images/chicken_leg.png');
 const slepice_telo = texture_loader.load('./sources/images/body_chicken.png');
 const slepice_hlava = texture_loader.load('./sources/images/head_chicken.png');
+const kohout_hreben = texture_loader.load('./sources/images/rooster_vole.png');
 const villager_arm = texture_loader.load('./sources/images/villager_arm.png');
 const villager_body = texture_loader.load('./sources/images/villager_body.png');
 const villager_neck = texture_loader.load('./sources/images/villager_neck.png');
@@ -55,9 +56,15 @@ const villager_ear2_tex = texture_loader.load('./sources/images/villager_head_ea
 const villager_hair_tex = texture_loader.load('./sources/images/villager_head_hair.png');
 const villager_neck_tex = texture_loader.load('./sources/images/villager_head_neck.png');
 const villager_down_tex = texture_loader.load('./sources/images/villager_head_down.png');
+const bed_up = texture_loader.load('./sources/images/bed_pillow_blanket.png');
+const bed_long_side = texture_loader.load('./sources/images/side_bed.png');
+const bed_short_side = texture_loader.load('./sources/images/another_side_bed.png');
 
 villager_ear2_tex.wrapS = THREE.RepeatWrapping;
 villager_ear2_tex.repeat.x = -1;
+
+bed_up.rotation = Math.PI / 2;
+bed_up.center.set(0.5, 0.5);
 
 floor_texture.wrapS = THREE.RepeatWrapping;
 floor_texture.wrapT = THREE.RepeatWrapping;
@@ -77,6 +84,9 @@ const villager_ear2_mat = new THREE.MeshStandardMaterial({ map: villager_ear2_te
 const villager_hair_mat = new THREE.MeshStandardMaterial({ map: villager_hair_tex});
 const villager_neck_mat = new THREE.MeshStandardMaterial({ map: villager_neck_tex});
 const villager_down_mat = new THREE.MeshStandardMaterial({ map: villager_down_tex});
+const bed_pillow_mat = new THREE.MeshStandardMaterial({ map: bed_up});
+const bed_long_side_mat = new THREE.MeshStandardMaterial({ map: bed_long_side});
+const bed_short_side_mat = new THREE.MeshStandardMaterial({ map: bed_short_side});
 
 const directionalLight = new THREE.DirectionalLight(0xffffff, 1.2);
 directionalLight.position.set(5, 10, 7);
@@ -143,6 +153,16 @@ const villager_head_material = [
   villager_face_mat,
 ];/*}}}*/
 
+const bed_material = [
+/*{{{*/
+  bed_long_side_mat,
+  bed_long_side_mat,
+  bed_pillow_mat,
+  ,
+  bed_short_side_mat,
+  bed_short_side_mat,
+];/*}}}*/
+
 class Walls
 {/*{{{*/
   constructor()
@@ -205,7 +225,9 @@ class Mods
     this.last_dialog = 0;
     this.text_sprite = null;
     this.face_texture = 0;
+    this.making_noise = 0;
     this.head_mesh = null;
+    this.male_female = 0;
     mods[this.id] = this;
   } 
 
@@ -439,6 +461,25 @@ class Mods
       return true;
     }
   }
+
+  sound()
+  {
+    if (this.type == "chicken")
+    {
+      let will_kokodak = Math.round(Math.random() * 60);
+      if (will_kokodak == 23)
+      {
+        if (this.male_female == 1)
+        {
+          chicken_sound_1.play();
+        }
+        else
+        {
+          chicken_sound_2.play();
+        }
+      }
+    }
+  }
 }/*}}}*/
 
 class Piece
@@ -477,6 +518,8 @@ const footstep1 = new Audio('./sources/sounds/footstep1.wav');
 const footsteps_running = new Audio('./sources/sounds/footsteps_running.wav');
 const wooden_door_open = new Audio('./sources/sounds/wooden_door_open.wav');
 const wooden_door_close = new Audio('./sources/sounds/wooden_door_close.wav');
+const chicken_sound_1 = new Audio('./sources/sounds/chicken_1_sound.wav');
+const chicken_sound_2 = new Audio('./sources/sounds/chicken_2_sound.wav');
 footstep1.volume = 0.40;
 wooden_door_close.volume = 0.40;
 wooden_door_open.volume = 0.40;
@@ -731,7 +774,7 @@ function animate()
 
             let index = (next_z + half_of_map) * size_of_map + (next_x + half_of_map);
 
-            if (world_plan[index] !== 1)
+            if (world_plan[index] !== 1 || world_plan[index] !== 3)
             {
                mob.cil_x = next_x;
                 mob.cil_z = next_z;
@@ -749,7 +792,11 @@ function animate()
       }
     }
     mob.move();
-   mob.speak();
+    mob.speak();
+    if (mob.type == "chicken")
+    {
+      mob.sound();
+    }
   }
   
   frame_per_second += 1;
@@ -1042,7 +1089,7 @@ function map_g_rooms(x, z)
       }
       else if (wall_y == 0)
       {
-        cube.y = 3.20;
+        cube.y = 3.2;
         cube.geometry = new THREE.BoxGeometry(1, 1.6, 1);
         cube.geometry.translate(wall_x,3.2,wall_z)
         cube.mesh = new THREE.Group(cube.geometry,door_block_materialy);
@@ -1057,9 +1104,26 @@ function map_g_rooms(x, z)
         cube.mesh = new THREE.Group(cube.geometry,roof_block_materialy);
         add_wall_part(cube.geometry,roof_block_materialy);
       }
-      if (wall_y != 5) 
+      else if (wall_y == 10)
+      {
+        cube.y = 0.5;
+        cube.geometry = new THREE.BoxGeometry(1.5, 1, 3);
+        cube.mesh = new THREE.Mesh(cube.geometry,bed_material);
+        cube.mesh.position.set(cube.x + 0.25,cube.y,cube.z + 1);
+        scene.add(cube.mesh);
+      }
+
+      if (wall_y != 5 && wall_y != 10) 
       {
         world_plan[(cube.z + half_of_map) * size_of_map + cube.x + half_of_map] = 1;
+      }
+      else if (wall_y == 10)
+      {
+        for (let dz = 0; dz < 3; dz++) 
+        {
+          world_plan[(cube.z + dz + half_of_map) * size_of_map + cube.x + half_of_map] = 3;
+          world_plan[(cube.z + dz + half_of_map) * size_of_map + (cube.x + 1) + half_of_map] = 3;
+        }
       }
     }
     else if (wall_y == 4)
@@ -1172,6 +1236,7 @@ function map_g_rooms(x, z)
       create_wall_cube(x + i, z + j, 5);
     }
   }
+  create_wall_cube(x + 1,z + 1,10,0);
   if (wall_geometries.length)
   {
       const merged_geometry = BufferGeometryUtils.mergeGeometries(
@@ -1293,26 +1358,52 @@ function collision(x, z)
         [x + distance, z],
         [x, z - distance],
         [x, z + distance],
-
         [x - distance, z - distance],
         [x + distance, z - distance],
         [x - distance, z + distance],
         [x + distance, z + distance]
     ];
 
+    let on_bed = false; 
+
     for (let point of points)
     {
-        let grid_x = Math.round(point[0] + 40);
-        let grid_z = Math.round(point[1] + 40);
+        let grid_x = Math.round(point[0] + half_of_map);
+        let grid_z = Math.round(point[1] + half_of_map);
 
-        if (grid_x < 0 || grid_x >= 80 ||
-            grid_z < 0 || grid_z >= 80)
+        if (grid_x < 0 || grid_x >= size_of_map ||
+            grid_z < 0 || grid_z >= size_of_map)
+        {
             return true;
+        }
 
-        let index = grid_z * 80 + grid_x;
+        let index = grid_z * size_of_map + grid_x;
 
         if (world_plan[index] === 1)
+        {
             return true;
+        }
+
+        if (world_plan[index] === 3)
+        {
+            if (floor_gravitation != 0 || jump >= 6) 
+            {
+                on_bed = true;
+            }
+            else
+            {
+                return true;
+            }
+        }
+    }
+
+    if (on_bed)
+    {
+        floor_gravitation = 2; 
+    }
+    else
+    {
+        floor_gravitation = 0; 
     }
 
     return false;
@@ -1328,7 +1419,7 @@ function can_I_jump(x,z)
     if (
       Math.abs(x - wall_x) < 0.8 &&
       Math.abs(z - wall_z) < 0.8 &&
-      cube.y == 3.2)
+      (cube.y == 3.2 || cube.y == 4.5))
     {
       return false;
     }
@@ -1364,41 +1455,6 @@ window.addEventListener('resize', () => {
 
 function am_I_movign()
 {/*{{{*/
-  if (in_game == 1)
-  {
-    let stojim_na_zdi = 0;
-
-    for (let cube of Object.values(walls))
-    {
-      if (
-        camera.position.x >= cube.mesh.position.x - 0.52 &&
-        camera.position.x <= cube.mesh.position.x + 0.52 &&
-        camera.position.z >= cube.mesh.position.z - 0.52 &&
-        camera.position.z <= cube.mesh.position.z + 0.52
-      )
-      {
-        if (cube.y == 0.5)
-        {
-          stojim_na_zdi = 1;
-        }
-        else if (cube.y == 1)
-        {
-          camera.position.x = last_jump_x;
-          camera.position.y = last_jump_y;
-        }
-      }
-    }
-
-    if (stojim_na_zdi == 1)
-    {
-      floor_gravitation = 2;
-    }
-    else
-    {
-      floor_gravitation = 0;
-    }
-  }
-
   if (jump == 1)
   {
     now_gravitation += 0.13;
@@ -1641,6 +1697,11 @@ function am_I_movign()
     camera.position.y = now_gravitation + 1.55;
   }
 
+  if (floor_gravitation == 1 || floor_gravitation == 2)
+  {
+    camera.position.y = now_gravitation + 1.55;
+  }
+
   if (buch >= 2 && buch <= 50)
   {
     buch++;
@@ -1853,14 +1914,16 @@ function spawn_mods(mob)
       map: slepice_telo
     });
 
-  const material_hlava = [
-    new THREE.MeshStandardMaterial({ map: slepice_hlava }),
-    new THREE.MeshStandardMaterial({ map: slepice_telo }), 
-    new THREE.MeshStandardMaterial({ map: slepice_telo }), 
-    new THREE.MeshStandardMaterial({ map: slepice_telo }),
-    new THREE.MeshStandardMaterial({ map: slepice_telo }),
-    new THREE.MeshStandardMaterial({ map: slepice_telo }) 
-  ];
+    const material_hlava = [
+      new THREE.MeshStandardMaterial({ map: slepice_hlava }),
+      new THREE.MeshStandardMaterial({ map: slepice_telo }), 
+      new THREE.MeshStandardMaterial({ map: slepice_telo }), 
+      new THREE.MeshStandardMaterial({ map: slepice_telo }),
+      new THREE.MeshStandardMaterial({ map: slepice_telo }),
+      new THREE.MeshStandardMaterial({ map: slepice_telo }) 
+    ];
+    
+    let chicken_rooster = Math.round(Math.random());
 
     chicken.mesh = new THREE.Group();
 
@@ -1889,6 +1952,21 @@ function spawn_mods(mob)
     const head = new THREE.BoxGeometry(0.5,0.7,0.7);
     head.translate(0.6,1.27,0);
     add_chicken_part(head, material_hlava);
+    
+    if (chicken_rooster == 1)
+    {
+      const vole_material = new THREE.MeshStandardMaterial({
+        map: kohout_hreben
+      });
+      const vole = new THREE.BoxGeometry(0.25,0.15,0.2);
+      vole.translate(0.6,1.695,0);
+      add_chicken_part(vole, vole_material);
+      chicken.male_female = 0;
+    }
+    else
+    {
+      chicken.male_female = 1;
+    }
 
     chicken.mesh.position.set(
       chicken.x,
